@@ -155,7 +155,7 @@
                             >
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <form action="{{ route('tiers.destroy', $tier) }}" method="POST" onsubmit="return confirm('Supprimer ce tiers ?');">
+                            <form action="{{ route('tiers.destroy', $tier) }}" method="POST" data-ajax-delete="true" data-confirm="Supprimer ce tiers ?">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-xs btn-outline-danger">
@@ -183,7 +183,7 @@
     </x-adminlte-modal>
 
     <x-adminlte-modal id="quickCreateTierModal" title="Creation rapide tiers" theme="primary" icon="fas fa-user-plus">
-        <form method="POST" action="{{ route('tiers.store') }}">
+        <form method="POST" action="{{ route('tiers.store') }}" data-ajax="true" data-modal-id="quickCreateTierModal">
             @csrf
             <div class="form-row">
                 <div class="form-group col-md-4">
@@ -221,7 +221,7 @@
     </x-adminlte-modal>
 
     <x-adminlte-modal id="quickTierEditModal" title="Edition rapide tiers" theme="warning" icon="fas fa-user-edit">
-        <form id="quickTierEditForm" method="POST">
+        <form id="quickTierEditForm" method="POST" data-ajax="true" data-modal-id="quickTierEditModal">
             @csrf
             @method('PUT')
             <div class="form-row">
@@ -286,3 +286,5 @@
     });
 </script>
 @endpush
+
+@include('partials.erp-interactions')

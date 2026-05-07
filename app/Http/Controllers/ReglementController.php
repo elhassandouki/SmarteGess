@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CompteT;
 use App\Models\Document;
 use App\Models\Reglement;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -59,7 +60,7 @@ class ReglementController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'doc_id' => ['nullable', 'exists:f_docentete,id'],
@@ -83,16 +84,28 @@ class ReglementController extends Controller
             $this->syncDocumentPayment($reglement->document);
         });
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Reglement ajoute avec succes.',
+            ]);
+        }
+
         return redirect()->route('reglements.index')->with('success', 'Reglement ajoute avec succes.');
     }
 
-    public function destroy(Reglement $reglement): RedirectResponse
+    public function destroy(Request $request, Reglement $reglement): RedirectResponse|JsonResponse
     {
         DB::transaction(function () use ($reglement) {
             $document = $reglement->document;
             $reglement->delete();
             $this->syncDocumentPayment($document);
         });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Reglement supprime avec succes.',
+            ]);
+        }
 
         return redirect()->route('reglements.index')->with('success', 'Reglement supprime avec succes.');
     }

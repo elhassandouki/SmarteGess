@@ -67,7 +67,14 @@ class CompteTController extends Controller
     {
         $data = $this->validateTier($request);
 
-        CompteT::create($data);
+        $tier = CompteT::create($data);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Tiers cree avec succes.',
+                'tier' => $tier,
+            ]);
+        }
 
         return redirect()->route('tiers.index')->with('success', 'Tiers cree avec succes.');
     }
@@ -83,16 +90,35 @@ class CompteTController extends Controller
 
         $tier->update($data);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Tiers mis a jour avec succes.',
+                'tier' => $tier->fresh(),
+            ]);
+        }
+
         return redirect()->route('tiers.index')->with('success', 'Tiers mis a jour avec succes.');
     }
 
     public function destroy(CompteT $tier): RedirectResponse
     {
         if ($tier->documents()->exists() || $tier->reglements()->exists()) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'message' => 'Impossible de supprimer un tiers lie a des documents ou reglements.',
+                ], 422);
+            }
+
             return redirect()->route('tiers.index')->with('error', 'Impossible de supprimer un tiers lie a des documents ou reglements.');
         }
 
         $tier->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'message' => 'Tiers supprime avec succes.',
+            ]);
+        }
 
         return redirect()->route('tiers.index')->with('success', 'Tiers supprime avec succes.');
     }

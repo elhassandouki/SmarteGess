@@ -36,9 +36,12 @@
             <h1 class="m-0 text-dark">Reglements</h1>
             <small class="text-muted">Paiements clients et fournisseurs lies aux documents.</small>
         </div>
-        <a href="{{ route('reglements.create') }}" class="btn btn-success">
-            <i class="fas fa-plus mr-1"></i> Nouveau reglement
-        </a>
+        <div class="btn-group">
+            <button type="button" class="btn btn-success" data-toggle="modal" data-target="#quickReglementModal">
+                <i class="fas fa-plus mr-1"></i> Nouveau reglement
+            </button>
+            <a href="{{ route('reglements.create') }}" class="btn btn-outline-success">Formulaire complet</a>
+        </div>
     </div>
 @stop
 
@@ -113,7 +116,7 @@
                         </span>
                     </td>
                     <td>
-                        <form action="{{ route('reglements.destroy', $reglement) }}" method="POST" onsubmit="return confirm('Supprimer ce reglement ?');">
+                        <form action="{{ route('reglements.destroy', $reglement) }}" method="POST" data-ajax-delete="true" data-confirm="Supprimer ce reglement ?">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-xs btn-outline-danger">
@@ -125,4 +128,45 @@
             @endforeach
         </x-adminlte-datatable>
     </x-adminlte-card>
+
+    <x-adminlte-modal id="quickReglementModal" title="Saisie rapide reglement" theme="success" icon="fas fa-money-check-alt">
+        <form method="POST" action="{{ route('reglements.store') }}" data-ajax="true" data-modal-id="quickReglementModal">
+            @csrf
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label>Tiers</label>
+                    <select name="tier_id" class="form-control" required>
+                        <option value="">Selectionner</option>
+                        @foreach ($tiers as $tier)
+                            <option value="{{ $tier->id }}">{{ $tier->code_tiers ?: $tier->ct_num }} - {{ $tier->ct_intitule }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group col-md-6">
+                    <label>Mode</label>
+                    <select name="rg_mode_reglement" class="form-control" required>
+                        @foreach ($modes as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-4"><label>Date</label><input type="date" name="rg_date" class="form-control" value="{{ now()->format('Y-m-d') }}" required></div>
+                <div class="form-group col-md-4"><label>Montant</label><input type="number" step="0.01" min="0.01" name="rg_montant" class="form-control" required></div>
+                <div class="form-group col-md-4"><label>Reference</label><input type="text" name="rg_reference" class="form-control"></div>
+            </div>
+            <div class="form-group">
+                <label>Libelle</label>
+                <input type="text" name="rg_libelle" class="form-control">
+            </div>
+            <div class="custom-control custom-switch mb-3">
+                <input type="checkbox" name="rg_valide" id="quick_rg_valide" class="custom-control-input" value="1" checked>
+                <label class="custom-control-label" for="quick_rg_valide">Reglement valide</label>
+            </div>
+            <button type="submit" class="btn btn-success">Enregistrer</button>
+        </form>
+    </x-adminlte-modal>
 @stop
+
+@include('partials.erp-interactions')

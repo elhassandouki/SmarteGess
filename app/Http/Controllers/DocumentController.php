@@ -12,6 +12,7 @@ use App\Models\DocumentLine;
 use App\Models\Transporteur;
 use App\Services\StockMovementService;
 use App\Support\DocumentTypeRegistry;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -147,7 +148,7 @@ class DocumentController extends Controller
         return redirect()->route('documents.index')->with('success', 'Document mis a jour avec succes.');
     }
 
-    public function destroy(Document $document): RedirectResponse
+    public function destroy(Request $request, Document $document): RedirectResponse|JsonResponse
     {
         DB::transaction(function () use ($document) {
             // Reverse stock movements before deleting
@@ -155,6 +156,12 @@ class DocumentController extends Controller
             $document->lines()->delete();
             $document->delete();
         });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Document supprime avec succes.',
+            ]);
+        }
 
         return redirect()->route('documents.index')->with('success', 'Document supprime avec succes.');
     }
@@ -205,7 +212,7 @@ class DocumentController extends Controller
             ->with('success', 'Document duplique avec succes. Vous pouvez maintenant l ajuster.');
     }
 
-    public function updateStatus(Request $request, Document $document): RedirectResponse
+    public function updateStatus(Request $request, Document $document): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'do_expedition_statut' => ['required', Rule::in(array_keys($this->statuts()))],
@@ -214,6 +221,12 @@ class DocumentController extends Controller
         $document->update([
             'do_expedition_statut' => $data['do_expedition_statut'],
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Statut du document mis a jour avec succes.',
+            ]);
+        }
 
         return redirect()
             ->route('documents.index')

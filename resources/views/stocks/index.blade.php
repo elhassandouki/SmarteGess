@@ -91,11 +91,12 @@
                     <td>{{ number_format((float) ($stock->article?->ar_stock_min ?? 0), 3) }}</td>
                     <td>{{ number_format((float) $stock->stock_reel * (float) ($stock->article?->ar_prix_achat ?? 0), 2) }}</td>
                     <td>
-                        <form method="POST" action="{{ route('stocks.adjust', $stock) }}" class="form-inline justify-content-center">
+                        <form method="POST" action="{{ route('stocks.adjust', $stock) }}" class="form-inline justify-content-center" data-ajax="true" data-reload="true">
                             @csrf
                             @method('PATCH')
                             <input type="number" step="0.001" min="0" name="stock_reel" value="{{ $stock->stock_reel }}" class="form-control form-control-sm mr-2" style="width: 92px;">
                             <input type="number" step="0.001" min="0" name="stock_reserve" value="{{ $stock->stock_reserve }}" class="form-control form-control-sm mr-2" style="width: 92px;">
+                            <input type="hidden" name="reason" value="Ajustement rapide depuis tableau stock">
                             <button type="submit" class="btn btn-xs btn-outline-primary">MAJ</button>
                         </form>
                     </td>
@@ -104,3 +105,5 @@
         </x-adminlte-datatable>
     </x-adminlte-card>
 @stop
+
+@include('partials.erp-interactions')

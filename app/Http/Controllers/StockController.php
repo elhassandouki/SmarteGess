@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Depot;
 use App\Models\Stock;
 use App\Services\StockMovementService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +56,7 @@ class StockController extends Controller
         ]);
     }
 
-    public function adjust(Request $request, Stock $stock): RedirectResponse
+    public function adjust(Request $request, Stock $stock): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'stock_reel' => ['required', 'numeric', 'min:0'],
@@ -77,6 +78,12 @@ class StockController extends Controller
                 $stock->update(['stock_reserve' => $data['stock_reserve']]);
             }
         });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Stock ajuste avec succes.',
+            ]);
+        }
 
         return redirect()->route('stocks.index')->with('success', 'Stock ajuste avec succes.');
     }

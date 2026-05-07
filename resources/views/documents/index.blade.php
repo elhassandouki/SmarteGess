@@ -185,7 +185,7 @@
                             <a href="{{ route('reglements.create', ['doc_id' => $document->id, 'tier_id' => $document->tier_id]) }}" class="btn btn-xs btn-outline-dark mr-2 mb-1" title="Reglement">
                                 <i class="fas fa-cash-register"></i>
                             </a>
-                            <form action="{{ route('documents.destroy', $document) }}" method="POST" onsubmit="return confirm('Supprimer ce document ?');">
+                            <form action="{{ route('documents.destroy', $document) }}" method="POST" data-ajax-delete="true" data-confirm="Supprimer ce document ?">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-xs btn-outline-danger mb-1">
@@ -211,7 +211,7 @@
     </x-adminlte-modal>
 
     <x-adminlte-modal id="quickStatusModal" title="Mise a jour rapide statut" theme="success" icon="fas fa-shipping-fast">
-        <form id="quickStatusForm" method="POST">
+        <form id="quickStatusForm" method="POST" data-ajax="true" data-modal-id="quickStatusModal">
             @csrf
             @method('PATCH')
             <div class="form-group">
@@ -250,3 +250,5 @@
     });
 </script>
 @endpush
+
+@include('partials.erp-interactions')
