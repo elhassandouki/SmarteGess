@@ -24,6 +24,35 @@ Auth::routes();
 
 Route::middleware('auth')->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
+
+    Route::prefix('erp')->name('erp.')->group(function () {
+        Route::prefix('ventes')->name('sales.')->group(function () {
+            Route::get('/documents', [SalesDocumentController::class, 'index'])->name('documents.index');
+        });
+
+        Route::prefix('achats')->name('purchases.')->group(function () {
+            Route::get('/documents', [PurchaseDocumentController::class, 'index'])->name('documents.index');
+        });
+
+        Route::prefix('stock')->name('stock.')->group(function () {
+            Route::get('/documents', [StockDocumentController::class, 'index'])->name('documents.index');
+            Route::get('/', [StockController::class, 'index'])->name('index');
+            Route::patch('/{stock}/adjust', [StockController::class, 'adjust'])->name('adjust');
+        });
+
+        Route::prefix('clients')->name('clients.')->group(function () {
+            Route::get('/', [CompteTController::class, 'clients'])->name('index');
+        });
+
+        Route::prefix('fournisseurs')->name('suppliers.')->group(function () {
+            Route::get('/', [CompteTController::class, 'suppliers'])->name('index');
+        });
+
+        Route::prefix('payments')->name('payments.')->group(function () {
+            Route::resource('reglements', ReglementController::class)->only(['index', 'create', 'store', 'destroy']);
+        });
+    });
+
     Route::resource('families', FamilyController::class)->except(['show']);
     Route::resource('articles', ArticleController::class)->except(['show']);
     Route::resource('depots', DepotController::class)->except(['show']);

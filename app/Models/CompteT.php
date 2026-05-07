@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CompteT extends Model
@@ -41,5 +42,15 @@ class CompteT extends Model
     public function reglements(): HasMany
     {
         return $this->hasMany(Reglement::class, 'tier_id');
+    }
+
+    public function scopeClients(Builder $query): Builder
+    {
+        return $query->where('ct_type', 'client');
+    }
+
+    public function scopeSuppliers(Builder $query): Builder
+    {
+        return $query->where('ct_type', 'fournisseur');
     }
 }

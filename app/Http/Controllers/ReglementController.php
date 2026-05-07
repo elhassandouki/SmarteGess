@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CompteT;
 use App\Models\Document;
 use App\Models\Reglement;
+use App\Services\ERP\PaymentWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ use Illuminate\View\View;
 
 class ReglementController extends Controller
 {
-    public function __construct()
+    public function __construct(protected PaymentWorkflowService $paymentWorkflowService)
     {
         $this->middleware('auth');
     }
@@ -81,7 +82,7 @@ class ReglementController extends Controller
                 'rg_valide' => $request->boolean('rg_valide'),
             ]);
 
-            $this->syncDocumentPayment($reglement->document);
+            $this->paymentWorkflowService->syncDocumentPayment($reglement->document);
         });
 
         if ($request->expectsJson()) {
@@ -98,7 +99,7 @@ class ReglementController extends Controller
         DB::transaction(function () use ($reglement) {
             $document = $reglement->document;
             $reglement->delete();
-            $this->syncDocumentPayment($document);
+            $this->paymentWorkflowService->syncDocumentPayment($document);
         });
 
         if ($request->expectsJson()) {
@@ -108,21 +109,6 @@ class ReglementController extends Controller
         }
 
         return redirect()->route('reglements.index')->with('success', 'Reglement supprime avec succes.');
-    }
-
-    protected function syncDocumentPayment(?Document $document): void
-    {
-        if (! $document) {
-            return;
-        }
-
-        $paid = (float) $document->reglements()->where('rg_valide', true)->sum('rg_montant');
-        $total = (float) $document->do_total_ttc;
-
-        $document->update([
-            'do_montant_regle' => $paid,
-            'do_statut' => $paid >= $total && $total > 0 ? 2 : ($paid > 0 ? 1 : 0),
-        ]);
     }
 
     protected function modes(): array
