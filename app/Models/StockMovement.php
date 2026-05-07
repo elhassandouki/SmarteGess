@@ -16,10 +16,13 @@ class StockMovement extends Model
         'article_id',
         'depot_id',
         'movement_type',
+        'type',
         'quantity',
         'reference',
         'reference_type',
         'reference_id',
+        'source_type',
+        'source_id',
         'user_id',
         'notes',
     ];

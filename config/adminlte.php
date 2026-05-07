@@ -324,6 +324,7 @@ return [
         [
             'text' => 'Ventes / Sales',
             'icon' => 'fas fa-fw fa-cash-register',
+            'can' => 'commercial-area',
             'submenu' => [
                 ['text' => 'Documents ventes', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-folder-open'],
                 ['text' => 'Factures clients', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-file-invoice-dollar'],
@@ -335,6 +336,7 @@ return [
         [
             'text' => 'Achats / Purchases',
             'icon' => 'fas fa-fw fa-dolly-flatbed',
+            'can' => 'commercial-area',
             'submenu' => [
                 ['text' => 'Documents achats', 'route' => 'documents.purchases', 'icon' => 'fas fa-fw fa-folder-open'],
                 ['text' => 'Factures fournisseurs', 'route' => 'documents.purchases', 'icon' => 'fas fa-fw fa-file-invoice'],
@@ -344,6 +346,7 @@ return [
         [
             'text' => 'Stock & Inventaire',
             'icon' => 'fas fa-fw fa-warehouse',
+            'can' => 'commercial-area',
             'submenu' => [
                 ['text' => 'Etat du stock', 'route' => 'stocks.index', 'icon' => 'fas fa-fw fa-boxes'],
                 ['text' => 'Documents stock', 'route' => 'documents.stock', 'icon' => 'fas fa-fw fa-folder-open'],
@@ -372,6 +375,7 @@ return [
             'text' => 'Nouveau document vente',
             'url' => 'documents/create?module=sales',
             'icon' => 'fas fa-fw fa-plus-circle',
+            'can' => 'commercial-area',
         ],
         [
             'text' => 'Nouveau document achat',
@@ -386,6 +390,7 @@ return [
         [
             'text' => 'Comptabilite',
             'icon' => 'fas fa-fw fa-calculator',
+            'can' => 'accounting-area',
             'submenu' => [
                 ['text' => 'Reglements', 'route' => 'reglements.index', 'icon' => 'fas fa-fw fa-money-check-alt'],
                 ['text' => 'Ecritures (a venir)', 'icon' => 'far fa-fw fa-circle', 'url' => '#'],

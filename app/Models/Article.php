@@ -57,4 +57,9 @@ class Article extends Model
     {
         return $this->hasMany(Stock::class, 'article_id');
     }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class, 'article_id');
+    }
 }

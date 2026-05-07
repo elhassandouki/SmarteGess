@@ -1,4 +1,7 @@
 @csrf
+@if (!empty($module))
+    <input type="hidden" name="module" value="{{ $module }}">
+@endif
 
 @php
     $currentLines = old('lines');

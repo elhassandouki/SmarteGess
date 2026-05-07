@@ -141,6 +141,11 @@ class CompteTController extends Controller
         $data['code_tiers'] = $data['code_tiers'] ?? $data['ct_num'];
         $data['ct_encours_max'] = $data['ct_encours_max'] ?? 0;
         $data['ct_delai_paiement'] = $data['ct_delai_paiement'] ?? 0;
+        $data['entity_type'] = match ($data['ct_type']) {
+            'fournisseur' => 'supplier',
+            'prospect' => 'prospect',
+            default => 'client',
+        };
 
         return $data;
     }

@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDocumentRequest;
 use App\Http\Requests\UpdateDocumentRequest;
+use App\Models\Article;
 use App\Models\CompteT;
 use App\Models\Depot;
 use App\Models\Document;
 use App\Models\DocumentLine;
 use App\Models\Transporteur;
 use App\Services\ERP\DocumentWorkflowService;
+use App\Services\ERP\AccountingPostingService;
 use App\Services\StockMovementService;
 use App\Support\DocumentTypeRegistry;
 use Illuminate\Http\JsonResponse;
@@ -24,12 +26,18 @@ class DocumentController extends Controller
 {
     protected StockMovementService $stockMovementService;
     protected DocumentWorkflowService $documentWorkflowService;
+    protected AccountingPostingService $accountingPostingService;
 
-    public function __construct(StockMovementService $stockMovementService, DocumentWorkflowService $documentWorkflowService)
+    public function __construct(
+        StockMovementService $stockMovementService,
+        DocumentWorkflowService $documentWorkflowService,
+        AccountingPostingService $accountingPostingService
+    )
     {
         $this->middleware('auth');
         $this->stockMovementService = $stockMovementService;
         $this->documentWorkflowService = $documentWorkflowService;
+        $this->accountingPostingService = $accountingPostingService;
     }
 
     public function index(Request $request): View
@@ -53,7 +61,8 @@ class DocumentController extends Controller
             ->when($paymentStatus !== null && $paymentStatus !== '', fn ($query) => $query->where('do_statut', (int) $paymentStatus))
             ->latest('do_date')
             ->latest('id')
-            ->get();
+            ->paginate(100)
+            ->withQueryString();
 
         return view('documents.index', [
             'documents' => $documents,
@@ -88,6 +97,7 @@ class DocumentController extends Controller
             $this->documentWorkflowService->syncLines($document, $data['lines']);
             // Process stock movements
             $this->stockMovementService->processDocumentMovement($document);
+            $this->accountingPostingService->syncDocumentPosting($document);
         });
 
         return redirect()->route('documents.index')->with('success', 'Document cree avec succes.');
@@ -145,6 +155,7 @@ class DocumentController extends Controller
             
             // Process stock movements (reverse old, create new)
             $this->stockMovementService->processDocumentMovement($document, $oldLines);
+            $this->accountingPostingService->syncDocumentPosting($document);
         });
 
         return redirect()->route('documents.index')->with('success', 'Document mis a jour avec succes.');
@@ -155,6 +166,7 @@ class DocumentController extends Controller
         DB::transaction(function () use ($document) {
             // Reverse stock movements before deleting
             $this->stockMovementService->deleteDocumentMovements($document);
+            $this->accountingPostingService->clearDocumentPosting($document->id);
             $document->lines()->delete();
             $document->delete();
         });
@@ -294,13 +306,22 @@ class DocumentController extends Controller
     protected function validateDocument(Request $request, ?int $documentId = null): array
     {
         $types = array_keys($this->types());
+        $module = (string) $request->input('module', '');
+        $allowedForModule = $module !== ''
+            ? array_keys(DocumentTypeRegistry::codesByModule($module))
+            : $types;
 
         return $request->validate([
             'do_piece' => ['required', 'string', 'max:100', Rule::unique('f_docentete', 'do_piece')->ignore($documentId)],
             'do_date' => ['required', 'date'],
             'tier_id' => ['nullable', 'exists:f_comptet,id'],
             'depot_id' => ['nullable', 'exists:f_depots,id'],
-            'type_document_code' => ['required', Rule::in($types)],
+            'module' => ['nullable', Rule::in([
+                DocumentTypeRegistry::MODULE_SALES,
+                DocumentTypeRegistry::MODULE_PURCHASE,
+                DocumentTypeRegistry::MODULE_STOCK,
+            ])],
+            'type_document_code' => ['required', Rule::in($allowedForModule)],
             'transporteur_id' => ['nullable', 'exists:f_transporteurs,id'],
             'do_lieu_livraison' => ['nullable', 'string', 'max:255'],
             'do_date_livraison' => ['nullable', 'date'],

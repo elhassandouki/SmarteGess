@@ -32,6 +32,11 @@ class DocumentWorkflowService
             'depot_id' => $data['depot_id'] ?? null,
             'do_type' => $this->numericTypeFromCode($data['type_document_code']),
             'type_document_code' => $data['type_document_code'],
+            'flux_type' => match ($definition['module'] ?? DocumentTypeRegistry::MODULE_SALES) {
+                DocumentTypeRegistry::MODULE_PURCHASE => 'achat',
+                DocumentTypeRegistry::MODULE_STOCK => 'stock',
+                default => 'vente',
+            },
             'doc_module' => $definition['module'] ?? DocumentTypeRegistry::MODULE_SALES,
             'workflow_type' => $definition['flow'] ?? 'order',
             'transporteur_id' => $data['transporteur_id'] ?? null,

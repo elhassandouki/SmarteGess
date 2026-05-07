@@ -21,6 +21,7 @@ class Document extends Model
         'tier_id',
         'do_type',
         'type_document_code',
+        'flux_type',
         'doc_module',
         'workflow_type',
         'depot_id',
@@ -71,6 +72,11 @@ class Document extends Model
     public function reglements(): HasMany
     {
         return $this->hasMany(Reglement::class, 'doc_id');
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class, 'reference_id');
     }
 
     public function scopeByModule(Builder $query, string $module): Builder

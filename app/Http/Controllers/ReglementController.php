@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CompteT;
 use App\Models\Document;
 use App\Models\Reglement;
+use App\Services\ERP\AccountingPostingService;
 use App\Services\ERP\PaymentWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,10 @@ use Illuminate\View\View;
 
 class ReglementController extends Controller
 {
-    public function __construct(protected PaymentWorkflowService $paymentWorkflowService)
+    public function __construct(
+        protected PaymentWorkflowService $paymentWorkflowService,
+        protected AccountingPostingService $accountingPostingService
+    )
     {
         $this->middleware('auth');
     }
@@ -83,6 +87,7 @@ class ReglementController extends Controller
             ]);
 
             $this->paymentWorkflowService->syncDocumentPayment($reglement->document);
+            $this->accountingPostingService->syncPaymentPosting($reglement);
         });
 
         if ($request->expectsJson()) {
@@ -98,6 +103,7 @@ class ReglementController extends Controller
     {
         DB::transaction(function () use ($reglement) {
             $document = $reglement->document;
+            $this->accountingPostingService->clearPaymentPosting($reglement->id);
             $reglement->delete();
             $this->paymentWorkflowService->syncDocumentPayment($document);
         });

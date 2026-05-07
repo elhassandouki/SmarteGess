@@ -64,6 +64,12 @@ class StockController extends Controller
             'reason' => ['nullable', 'string', 'max:255'],
         ]);
 
+        if (isset($data['stock_reserve']) && (float) $data['stock_reel'] < (float) $data['stock_reserve']) {
+            return $request->expectsJson()
+                ? response()->json(['message' => 'Le stock reel ne peut pas etre inferieur au stock reserve.'], 422)
+                : back()->withErrors(['stock_reel' => 'Le stock reel ne peut pas etre inferieur au stock reserve.'])->withInput();
+        }
+
         $reason = $data['reason'] ?? 'Manual stock adjustment';
 
         DB::transaction(function () use ($stock, $data, $reason) {

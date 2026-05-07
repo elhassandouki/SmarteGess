@@ -8,9 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('f_docentete', function (Blueprint $table) {
+        $hasDepotsTable = Schema::hasTable('f_depots');
+
+        Schema::table('f_docentete', function (Blueprint $table) use ($hasDepotsTable) {
             if (! Schema::hasColumn('f_docentete', 'depot_id')) {
-                $table->foreignId('depot_id')->nullable()->after('tier_id')->constrained('f_depots')->nullOnDelete();
+                if ($hasDepotsTable) {
+                    $table->foreignId('depot_id')->nullable()->after('tier_id')->constrained('f_depots')->nullOnDelete();
+                } else {
+                    $table->unsignedBigInteger('depot_id')->nullable()->after('tier_id');
+                    $table->index('depot_id', 'idx_f_docentete_depot_id');
+                }
             }
 
             if (! Schema::hasColumn('f_docentete', 'do_total_tva')) {
@@ -29,9 +36,16 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('f_docentete', function (Blueprint $table) {
+        $hasDepotsTable = Schema::hasTable('f_depots');
+
+        Schema::table('f_docentete', function (Blueprint $table) use ($hasDepotsTable) {
             if (Schema::hasColumn('f_docentete', 'depot_id')) {
-                $table->dropConstrainedForeignId('depot_id');
+                if ($hasDepotsTable) {
+                    $table->dropConstrainedForeignId('depot_id');
+                } else {
+                    $table->dropIndex('idx_f_docentete_depot_id');
+                    $table->dropColumn('depot_id');
+                }
             }
         });
     }

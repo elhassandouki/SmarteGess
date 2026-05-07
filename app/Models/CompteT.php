@@ -18,6 +18,7 @@ class CompteT extends Model
         'code_tiers',
         'ct_intitule',
         'ct_type',
+        'entity_type',
         'ct_ice',
         'ct_if',
         'ct_encours_max',
@@ -46,11 +47,17 @@ class CompteT extends Model
 
     public function scopeClients(Builder $query): Builder
     {
-        return $query->where('ct_type', 'client');
+        return $query->where(function (Builder $q) {
+            $q->where('entity_type', 'client')
+                ->orWhere('ct_type', 'client');
+        });
     }
 
     public function scopeSuppliers(Builder $query): Builder
     {
-        return $query->where('ct_type', 'fournisseur');
+        return $query->where(function (Builder $q) {
+            $q->where('entity_type', 'supplier')
+                ->orWhere('ct_type', 'fournisseur');
+        });
     }
 }

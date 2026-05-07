@@ -28,10 +28,14 @@ Route::middleware('auth')->group(function () {
     Route::prefix('erp')->name('erp.')->group(function () {
         Route::prefix('ventes')->name('sales.')->group(function () {
             Route::get('/documents', [SalesDocumentController::class, 'index'])->name('documents.index');
+            Route::get('/documents/create', [SalesDocumentController::class, 'create'])->name('documents.create');
+            Route::post('/documents', [SalesDocumentController::class, 'store'])->name('documents.store');
         });
 
         Route::prefix('achats')->name('purchases.')->group(function () {
             Route::get('/documents', [PurchaseDocumentController::class, 'index'])->name('documents.index');
+            Route::get('/documents/create', [PurchaseDocumentController::class, 'create'])->name('documents.create');
+            Route::post('/documents', [PurchaseDocumentController::class, 'store'])->name('documents.store');
         });
 
         Route::prefix('stock')->name('stock.')->group(function () {
