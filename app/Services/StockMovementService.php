@@ -7,25 +7,11 @@ use App\Models\DocumentLine;
 use App\Models\Depot;
 use App\Models\Stock;
 use App\Models\StockMovement;
+use App\Support\DocumentTypeRegistry;
 use Illuminate\Support\Facades\DB;
 
 class StockMovementService
 {
-    /**
-     * Document type codes that REDUCE stock (outbound)
-     */
-    private const OUTBOUND_TYPES = ['BL', 'FA', 'BR']; // Bon de Livraison, Facture, Bon de Retour
-
-    /**
-     * Document type codes that INCREASE stock (inbound)
-     */
-    private const INBOUND_TYPES = ['BC']; // Bon de Commande (when it's a purchase)
-
-    /**
-     * Documents that do NOT affect stock
-     */
-    private const NON_STOCK_TYPES = ['DE']; // Devis (quotes)
-
     /**
      * Process stock movements when a document is created or modified
      *
@@ -233,15 +219,8 @@ class StockMovementService
      */
     private function getMovementType(string $typeCode): ?string
     {
-        if (in_array($typeCode, self::INBOUND_TYPES)) {
-            return 'IN';
-        }
-
-        if (in_array($typeCode, self::OUTBOUND_TYPES)) {
-            return 'OUT';
-        }
-
-        return null;
+        $movement = DocumentTypeRegistry::movementFromCode($typeCode);
+        return $movement === 'NONE' ? null : $movement;
     }
 
     /**
@@ -249,7 +228,7 @@ class StockMovementService
      */
     private function getMovementDirection(string $movementType): int
     {
-        return $movementType === 'IN' ? 1 : -1;
+        return $movementType === 'IN' ? 1 : ($movementType === 'OUT' ? -1 : 0);
     }
 
     /**
@@ -257,7 +236,9 @@ class StockMovementService
      */
     private function mapMovementType(string $movementType): string
     {
-        return $movementType === 'IN' ? 'IN' : 'OUT';
+        return in_array($movementType, ['IN', 'OUT', 'ADJUSTMENT', 'RETURN'], true)
+            ? $movementType
+            : 'ADJUSTMENT';
     }
 
     /**

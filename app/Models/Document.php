@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Support\DocumentTypeRegistry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
 
 class Document extends Model
 {
@@ -19,6 +21,8 @@ class Document extends Model
         'tier_id',
         'do_type',
         'type_document_code',
+        'doc_module',
+        'workflow_type',
         'depot_id',
         'transporteur_id',
         'do_lieu_livraison',
@@ -67,5 +71,31 @@ class Document extends Model
     public function reglements(): HasMany
     {
         return $this->hasMany(Reglement::class, 'doc_id');
+    }
+
+    public function scopeByModule(Builder $query, string $module): Builder
+    {
+        $codes = array_keys(DocumentTypeRegistry::codesByModule($module));
+        return $query->whereIn('type_document_code', $codes);
+    }
+
+    public function scopeSales(Builder $query): Builder
+    {
+        return $this->scopeByModule($query, DocumentTypeRegistry::MODULE_SALES);
+    }
+
+    public function scopePurchases(Builder $query): Builder
+    {
+        return $this->scopeByModule($query, DocumentTypeRegistry::MODULE_PURCHASE);
+    }
+
+    public function scopeStockDocs(Builder $query): Builder
+    {
+        return $this->scopeByModule($query, DocumentTypeRegistry::MODULE_STOCK);
+    }
+
+    public function getModuleAttribute(): string
+    {
+        return DocumentTypeRegistry::moduleFromCode((string) $this->type_document_code);
     }
 }

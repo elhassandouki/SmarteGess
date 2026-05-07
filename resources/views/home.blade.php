@@ -8,7 +8,7 @@
     <div class="d-flex justify-content-between align-items-center">
         <div>
             <h1 class="m-0">Dashboard</h1>
-            <small class="text-muted">Pilotage rapide de SmartGess</small>
+            <small class="text-muted">Pilotage ERP commercial par module: ventes, achats, stock, tiers et paiements.</small>
         </div>
         <a href="{{ route('documents.create') }}" class="btn btn-primary">
             <i class="fas fa-plus mr-1"></i> Nouveau document
@@ -23,26 +23,26 @@
         <div class="col-lg-4 col-12">
             <div class="small-box bg-primary">
                 <div class="inner">
-                    <h3>{{ $stats['families'] }}</h3>
-                    <p>Familles</p>
+                    <h3>{{ $stats['documents'] }}</h3>
+                    <p>Documents commerciaux</p>
                 </div>
                 <div class="icon">
-                    <i class="fas fa-layer-group"></i>
+                    <i class="fas fa-file-invoice-dollar"></i>
                 </div>
-                <a href="{{ route('families.index') }}" class="small-box-footer">Ouvrir <i class="fas fa-arrow-circle-right"></i></a>
+                <a href="{{ route('documents.index') }}" class="small-box-footer">Ventes & achats <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
 
         <div class="col-lg-4 col-12">
             <div class="small-box bg-success">
                 <div class="inner">
-                    <h3>{{ $stats['articles'] }}</h3>
-                    <p>Articles</p>
+                    <h3>{{ $stats['stocks'] }} / {{ $stats['depots'] }}</h3>
+                    <p>Stock / Depots</p>
                 </div>
                 <div class="icon">
-                    <i class="fas fa-boxes"></i>
+                    <i class="fas fa-warehouse"></i>
                 </div>
-                <a href="{{ route('articles.index') }}" class="small-box-footer">Ouvrir <i class="fas fa-arrow-circle-right"></i></a>
+                <a href="{{ route('stocks.index') }}" class="small-box-footer">Inventaire <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
 
@@ -50,7 +50,7 @@
             <div class="small-box bg-indigo">
                 <div class="inner">
                     <h3>{{ $stats['tiers'] }}</h3>
-                    <p>Tiers</p>
+                    <p>Clients / Fournisseurs</p>
                 </div>
                 <div class="icon">
                     <i class="fas fa-users"></i>
@@ -65,7 +65,7 @@
             <div class="small-box bg-info">
                 <div class="inner">
                     <h3>{{ $stats['transporteurs'] }}</h3>
-                    <p>Transporteurs</p>
+                    <p>Transport & logistique</p>
                 </div>
                 <div class="icon">
                     <i class="fas fa-truck"></i>
@@ -77,26 +77,26 @@
         <div class="col-lg-4 col-12">
             <div class="small-box bg-warning">
                 <div class="inner">
-                    <h3>{{ $stats['documents'] }}</h3>
-                    <p>Documents</p>
+                    <h3>{{ $stats['articles'] }}</h3>
+                    <p>Catalogue articles</p>
                 </div>
                 <div class="icon">
-                    <i class="fas fa-file-invoice"></i>
+                    <i class="fas fa-box-open"></i>
                 </div>
-                <a href="{{ route('documents.index') }}" class="small-box-footer">Ouvrir <i class="fas fa-arrow-circle-right"></i></a>
+                <a href="{{ route('articles.index') }}" class="small-box-footer">Ouvrir <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
 
         <div class="col-lg-4 col-12">
             <div class="small-box bg-secondary">
                 <div class="inner">
-                    <h3>{{ $stats['stocks'] }} / {{ $stats['depots'] }}</h3>
-                    <p>Stock / Depots</p>
+                    <h3>{{ $stats['families'] }}</h3>
+                    <p>Familles d'articles</p>
                 </div>
                 <div class="icon">
-                    <i class="fas fa-warehouse"></i>
+                    <i class="fas fa-layer-group"></i>
                 </div>
-                <a href="{{ route('stocks.index') }}" class="small-box-footer">Ouvrir le stock <i class="fas fa-arrow-circle-right"></i></a>
+                <a href="{{ route('families.index') }}" class="small-box-footer">Ouvrir <i class="fas fa-arrow-circle-right"></i></a>
             </div>
         </div>
     </div>

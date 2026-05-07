@@ -22,6 +22,10 @@
         'responsive' => true,
         'autoWidth' => false,
         'pageLength' => 10,
+        'dom' => "<'row'<'col-md-6'B><'col-md-6'f>>" .
+            "<'row'<'col-sm-12'tr>>" .
+            "<'row mt-2'<'col-md-5'i><'col-md-7'p>>",
+        'buttons' => ['copy', 'csv', 'excel', 'pdf', 'print', 'colvis'],
         'language' => ['url' => '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'],
     ];
 @endphp

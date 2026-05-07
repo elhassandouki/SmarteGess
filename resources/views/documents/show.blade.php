@@ -40,55 +40,58 @@
 @section('content')
     <div class="row">
         <div class="col-md-4">
-            <x-adminlte-card theme="lightblue" title="Informations">
-                <p><strong>Type:</strong> {{ $types[$document->type_document_code ?: 'BC'] ?? 'N/A' }}</p>
-                <p><strong>Date:</strong> {{ optional($document->do_date)->format('Y-m-d') }}</p>
-                <p><strong>Tiers:</strong> {{ $document->tier?->ct_num ? ($document->tier->code_tiers ?: $document->tier->ct_num).' - '.$document->tier->ct_intitule : '-' }}</p>
-                <p><strong>Depot:</strong> {{ $document->depot?->intitule ?? '-' }}</p>
-                <p><strong>Transporteur:</strong> {{ $document->transporteur?->tr_nom ?? '-' }}</p>
-                <p><strong>Lieu:</strong> {{ $document->do_lieu_livraison ?: '-' }}</p>
-                <p class="mb-0"><strong>Statut:</strong> <span class="badge badge-info">{{ ucfirst(str_replace('_', ' ', $document->do_expedition_statut)) }}</span></p>
+            <x-adminlte-card theme="info" theme-mode="outline" title="Informations document">
+                <div class="mb-2">
+                    <span class="badge badge-info mr-1">{{ $types[$document->type_document_code ?: 'BC'] ?? 'N/A' }}</span>
+                    <span class="badge badge-{{ $document->do_statut == 2 ? 'success' : ($document->do_statut == 1 ? 'warning' : 'secondary') }}">{{ $statusMap[$document->do_statut] ?? 'N/A' }}</span>
+                </div>
+                <p><strong>Pièce :</strong> {{ $document->do_piece }}</p>
+                <p><strong>Date :</strong> {{ optional($document->do_date)->format('Y-m-d') }}</p>
+                <p><strong>Tiers :</strong> {{ $document->tier?->code_tiers ?: $document->tier?->ct_num ?: '-' }} {{ $document->tier?->ct_intitule ? '- ' . $document->tier->ct_intitule : '' }}</p>
+                <p><strong>Depot :</strong> {{ $document->depot?->intitule ?? '-' }}</p>
+                <p><strong>Transporteur :</strong> {{ $document->transporteur?->tr_nom ?? '-' }}</p>
+                <p class="mb-0"><strong>Lieu livraison :</strong> {{ $document->do_lieu_livraison ?: '-' }}</p>
             </x-adminlte-card>
         </div>
+
         <div class="col-md-4">
-            <x-adminlte-card theme="olive" title="Montants">
-                <p><strong>Total HT:</strong> {{ number_format((float) $document->do_total_ht, 2) }}</p>
-                <p><strong>Total TVA:</strong> {{ number_format((float) $document->do_total_tva, 2) }}</p>
-                <p><strong>Total TTC:</strong> <span class="h5">{{ number_format((float) $document->do_total_ttc, 2) }}</span></p>
+            <x-adminlte-card theme="olive" theme-mode="outline" title="Résumé financier">
+                <p><strong>Total HT :</strong> {{ number_format((float) $document->do_total_ht, 2) }}</p>
+                <p><strong>Total TVA :</strong> {{ number_format((float) $document->do_total_tva, 2) }}</p>
+                <p><strong>Total TTC :</strong> <span class="h5">{{ number_format((float) $document->do_total_ttc, 2) }}</span></p>
                 <hr>
-                <p><strong>Montant regle:</strong> {{ number_format((float) $document->do_montant_regle, 2) }}</p>
-                <p><strong>Reste a payer:</strong> <span class="text-danger h6">{{ number_format((float) $document->do_total_ttc - $document->do_montant_regle, 2) }}</span></p>
-                <p class="mb-0"><strong>Nombre de lignes:</strong> {{ $document->lines->count() }}</p>
+                <p><strong>Montant réglé :</strong> {{ number_format((float) $document->do_montant_regle, 2) }}</p>
+                <p><strong>Reste à payer :</strong> <span class="text-danger h6">{{ number_format((float) $document->do_total_ttc - $document->do_montant_regle, 2) }}</span></p>
+                <p class="mb-0"><strong>Lignes :</strong> {{ $document->lines->count() }}</p>
             </x-adminlte-card>
         </div>
+
         <div class="col-md-4">
-            <x-adminlte-card theme="purple" title="Suivi">
-                <p><strong>Code tiers:</strong> {{ $document->tier?->code_tiers ?: $document->tier?->ct_num ?: '-' }}</p>
-                <p><strong>Date livraison:</strong> {{ optional($document->do_date_livraison)->format('Y-m-d') ?: '-' }}</p>
-                <p><strong>Etat paiement:</strong> 
+            <x-adminlte-card theme="purple" theme-mode="outline" title="Suivi opérationnel">
+                <p><strong>Code tiers :</strong> {{ $document->tier?->code_tiers ?: $document->tier?->ct_num ?: '-' }}</p>
+                <p><strong>Livraison prévue :</strong> {{ optional($document->do_date_livraison)->format('Y-m-d') ?: '-' }}</p>
+                <p><strong>Etat paiement :</strong>
                     @if ($document->do_statut == 2)
-                        <span class="badge badge-success">Regle</span>
+                        <span class="badge badge-success">Réglé</span>
                     @elseif ($document->do_statut == 1)
-                        <span class="badge badge-warning">Partiellement regle</span>
+                        <span class="badge badge-warning">Partiellement réglé</span>
                     @else
-                        <span class="badge badge-danger">Non regle</span>
+                        <span class="badge badge-danger">Non réglé</span>
                     @endif
                 </p>
-                <p><strong>Derniere maj:</strong> {{ $document->updated_at->format('Y-m-d H:i') }}</p>
+                <p><strong>Dernière mise à jour :</strong> {{ $document->updated_at->format('Y-m-d H:i') }}</p>
                 <form action="{{ route('documents.update-status', $document) }}" method="POST" class="mt-3">
                     @csrf
                     @method('PATCH')
-                    <label for="do_expedition_statut" class="small text-muted">Changer le statut</label>
-                    <div class="input-group">
+                    <div class="form-group">
+                        <label for="do_expedition_statut" class="small text-muted">Changer le statut</label>
                         <select name="do_expedition_statut" id="do_expedition_statut" class="form-control">
                             <option value="en_attente" @selected($document->do_expedition_statut === 'en_attente')>En attente</option>
                             <option value="en_cours" @selected($document->do_expedition_statut === 'en_cours')>En cours</option>
-                            <option value="livre" @selected($document->do_expedition_statut === 'livre')>Livre</option>
+                            <option value="livre" @selected($document->do_expedition_statut === 'livre')>Livré</option>
                         </select>
-                        <div class="input-group-append">
-                            <button type="submit" class="btn btn-outline-primary">Appliquer</button>
-                        </div>
                     </div>
+                    <button type="submit" class="btn btn-outline-primary btn-block">Mettre à jour</button>
                 </form>
             </x-adminlte-card>
         </div>

@@ -19,6 +19,7 @@ class CompteTController extends Controller
     {
         $search = trim((string) $request->string('search'));
         $type = trim((string) $request->string('type'));
+        $entity = trim((string) $request->string('entity'));
 
         $tiers = CompteT::withCount(['documents', 'reglements'])
             ->when($search !== '', function ($query) use ($search) {
@@ -37,11 +38,24 @@ class CompteTController extends Controller
 
         return view('tiers.index', [
             'tiers' => $tiers,
+            'entity' => $entity,
             'filters' => [
                 'search' => $search,
                 'type' => $type,
             ],
         ]);
+    }
+
+    public function clients(Request $request): View
+    {
+        $request->merge(['type' => 'client', 'entity' => 'clients']);
+        return $this->index($request);
+    }
+
+    public function suppliers(Request $request): View
+    {
+        $request->merge(['type' => 'fournisseur', 'entity' => 'suppliers']);
+        return $this->index($request);
     }
 
     public function create(): View

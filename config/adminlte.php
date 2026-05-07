@@ -152,12 +152,12 @@ return [
     |
     */
 
-    'layout_topnav' => null,
+    'layout_topnav' => false,
     'layout_boxed' => null,
-    'layout_fixed_sidebar' => null,
-    'layout_fixed_navbar' => null,
+    'layout_fixed_sidebar' => true,
+    'layout_fixed_navbar' => true,
     'layout_fixed_footer' => null,
-    'layout_dark_mode' => null,
+    'layout_dark_mode' => false,
 
     /*
     |--------------------------------------------------------------------------
@@ -308,58 +308,89 @@ return [
             'type' => 'fullscreen-widget',
             'topnav_right' => true,
         ],
-
         [
             'type' => 'sidebar-menu-search',
             'text' => 'search',
+        ],
+        [
+            'header' => 'Tableau de bord',
         ],
         [
             'text' => 'Dashboard',
             'route' => 'home',
             'icon' => 'fas fa-fw fa-tachometer-alt',
         ],
+        ['header' => 'ERP Commercial'],
         [
-            'header' => 'Gestion commerciale',
-        ],
-        [
-            'text' => 'Familles',
-            'route' => 'families.index',
-            'icon' => 'fas fa-fw fa-layer-group',
-        ],
-        [
-            'text' => 'Articles',
-            'route' => 'articles.index',
-            'icon' => 'fas fa-fw fa-boxes',
-        ],
-        [
-            'text' => 'Stock',
-            'route' => 'stocks.index',
-            'icon' => 'fas fa-fw fa-warehouse',
-        ],
-        [
-            'text' => 'Depots',
-            'route' => 'depots.index',
-            'icon' => 'fas fa-fw fa-people-carry-box',
-        ],
-        [
-            'text' => 'Tiers',
-            'route' => 'tiers.index',
-            'icon' => 'fas fa-fw fa-users',
-        ],
-        [
-            'text' => 'Transporteurs',
-            'route' => 'transporteurs.index',
-            'icon' => 'fas fa-fw fa-truck',
-        ],
-        [
-            'text' => 'Documents',
-            'route' => 'documents.index',
-            'icon' => 'fas fa-fw fa-file-invoice',
-        ],
-        [
-            'text' => 'Reglements',
-            'route' => 'reglements.index',
+            'text' => 'Ventes / Sales',
             'icon' => 'fas fa-fw fa-cash-register',
+            'submenu' => [
+                ['text' => 'Documents ventes', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-folder-open'],
+                ['text' => 'Factures clients', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-file-invoice-dollar'],
+                ['text' => 'Devis', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-file-signature'],
+                ['text' => 'Bons de livraison', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-truck-loading'],
+                ['text' => 'Commandes clients', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-shopping-basket'],
+            ],
+        ],
+        [
+            'text' => 'Achats / Purchases',
+            'icon' => 'fas fa-fw fa-dolly-flatbed',
+            'submenu' => [
+                ['text' => 'Documents achats', 'route' => 'documents.purchases', 'icon' => 'fas fa-fw fa-folder-open'],
+                ['text' => 'Factures fournisseurs', 'route' => 'documents.purchases', 'icon' => 'fas fa-fw fa-file-invoice'],
+                ['text' => 'Commandes fournisseurs', 'route' => 'documents.purchases', 'icon' => 'fas fa-fw fa-clipboard-check'],
+            ],
+        ],
+        [
+            'text' => 'Stock & Inventaire',
+            'icon' => 'fas fa-fw fa-warehouse',
+            'submenu' => [
+                ['text' => 'Etat du stock', 'route' => 'stocks.index', 'icon' => 'fas fa-fw fa-boxes'],
+                ['text' => 'Documents stock', 'route' => 'documents.stock', 'icon' => 'fas fa-fw fa-folder-open'],
+                ['text' => 'Mouvements de stock', 'route' => 'documents.stock', 'icon' => 'fas fa-fw fa-exchange-alt'],
+                ['text' => 'Ajustements inventaire', 'route' => 'documents.stock', 'icon' => 'fas fa-fw fa-sliders-h'],
+                ['text' => 'Transferts', 'route' => 'documents.stock', 'icon' => 'fas fa-fw fa-random'],
+                ['text' => 'Articles', 'route' => 'articles.index', 'icon' => 'fas fa-fw fa-cube'],
+                ['text' => 'Familles', 'route' => 'families.index', 'icon' => 'fas fa-fw fa-layer-group'],
+                ['text' => 'Depots', 'route' => 'depots.index', 'icon' => 'fas fa-fw fa-people-carry'],
+            ],
+        ],
+        [
+            'text' => 'Clients & Fournisseurs',
+            'icon' => 'fas fa-fw fa-users',
+            'submenu' => [
+                ['text' => 'Clients', 'route' => 'tiers.clients', 'icon' => 'fas fa-fw fa-user-tie'],
+                ['text' => 'Fournisseurs', 'route' => 'tiers.suppliers', 'icon' => 'fas fa-fw fa-truck-loading'],
+                ['text' => 'Base tiers', 'route' => 'tiers.index', 'icon' => 'fas fa-fw fa-address-book'],
+                ['text' => 'Transporteurs', 'route' => 'transporteurs.index', 'icon' => 'fas fa-fw fa-truck'],
+            ],
+        ],
+        [
+            'header' => 'Actions Rapides',
+        ],
+        [
+            'text' => 'Nouveau document vente',
+            'url' => 'documents/create?module=sales',
+            'icon' => 'fas fa-fw fa-plus-circle',
+        ],
+        [
+            'text' => 'Nouveau document achat',
+            'url' => 'documents/create?module=purchase',
+            'icon' => 'fas fa-fw fa-plus-square',
+        ],
+        [
+            'text' => 'Nouveau client',
+            'route' => 'tiers.clients',
+            'icon' => 'fas fa-fw fa-user-plus',
+        ],
+        [
+            'text' => 'Comptabilite',
+            'icon' => 'fas fa-fw fa-calculator',
+            'submenu' => [
+                ['text' => 'Reglements', 'route' => 'reglements.index', 'icon' => 'fas fa-fw fa-money-check-alt'],
+                ['text' => 'Ecritures (a venir)', 'icon' => 'far fa-fw fa-circle', 'url' => '#'],
+                ['text' => 'Balance (a venir)', 'icon' => 'far fa-fw fa-circle', 'url' => '#'],
+            ],
         ],
         [
             'header' => 'Session',

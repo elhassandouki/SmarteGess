@@ -11,6 +11,7 @@ use App\Models\Document;
 use App\Models\DocumentLine;
 use App\Models\Transporteur;
 use App\Services\StockMovementService;
+use App\Support\DocumentTypeRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,15 +31,18 @@ class DocumentController extends Controller
 
     public function index(Request $request): View
     {
+        $module = (string) $request->string('module')->value() ?: null;
         $dateFrom = $request->date('date_from');
         $dateTo = $request->date('date_to');
         $typeCode = trim((string) $request->string('type_document_code'));
         $tierId = $request->integer('tier_id') ?: null;
         $paymentStatus = $request->string('payment_status')->value();
 
-        $documents = Document::with('transporteur')
+        $documents = Document::query()
+            ->with('transporteur')
             ->with('tier')
             ->withCount('lines')
+            ->when($module, fn ($query) => $query->byModule($module))
             ->when($dateFrom, fn ($query) => $query->whereDate('do_date', '>=', $dateFrom))
             ->when($dateTo, fn ($query) => $query->whereDate('do_date', '<=', $dateTo))
             ->when($typeCode !== '', fn ($query) => $query->where('type_document_code', $typeCode))
@@ -51,6 +55,7 @@ class DocumentController extends Controller
         return view('documents.index', [
             'documents' => $documents,
             'types' => $this->types(),
+            'module' => $module,
             'statusMap' => $this->paymentStatuses(),
             'tiers' => CompteT::orderBy('ct_intitule')->get(),
             'filters' => [
@@ -59,13 +64,15 @@ class DocumentController extends Controller
                 'type_document_code' => $typeCode,
                 'tier_id' => $tierId,
                 'payment_status' => $paymentStatus,
+                'module' => $module,
             ],
         ]);
     }
 
     public function create(): View
     {
-        return view('documents.create', $this->formData());
+        $module = request()->string('module')->value();
+        return view('documents.create', $this->formData($module !== '' ? $module : null));
     }
 
     public function store(Request $request): RedirectResponse
@@ -112,7 +119,7 @@ class DocumentController extends Controller
         $document->load('lines');
 
         return view('documents.edit', array_merge(
-            $this->formData(),
+            $this->formData($document->module),
             ['document' => $document]
         ));
     }
@@ -213,28 +220,24 @@ class DocumentController extends Controller
             ->with('success', 'Statut du document mis a jour avec succes.');
     }
 
-    protected function formData(): array
+    protected function formData(?string $module = null): array
     {
+        $types = $module ? DocumentTypeRegistry::codesByModule($module) : $this->types();
+
         return [
             'articles' => Article::orderBy('ar_design')->get(),
             'tiers' => CompteT::orderBy('ct_intitule')->get(),
             'depots' => Depot::orderBy('intitule')->get(),
             'transporteurs' => Transporteur::orderBy('tr_nom')->get(),
-            'types' => $this->types(),
+            'types' => $types,
             'statuts' => $this->statuts(),
+            'module' => $module,
         ];
     }
 
     protected function types(): array
     {
-        return [
-            'DE' => 'Devis',
-            'BC' => 'Bon de commande',
-            'BL' => 'Bon de livraison',
-            'FA' => 'Facture',
-            'BR' => 'Bon de retour',
-            'FR' => 'Facture retour',
-        ];
+        return DocumentTypeRegistry::labels();
     }
 
     protected function numericTypeFromCode(string $code): int
@@ -307,6 +310,7 @@ class DocumentController extends Controller
 
     protected function extractDocumentData(array $data): array
     {
+        $definition = DocumentTypeRegistry::definitions()[$data['type_document_code']] ?? null;
         $taxRates = $this->articleTaxRates(collect($data['lines'])->pluck('article_id')->all());
 
         $totals = collect($data['lines'])->reduce(function (array $carry, array $line) use ($taxRates) {
@@ -328,6 +332,8 @@ class DocumentController extends Controller
             'depot_id' => $data['depot_id'] ?? null,
             'do_type' => $this->numericTypeFromCode($data['type_document_code']),
             'type_document_code' => $data['type_document_code'],
+            'doc_module' => $definition['module'] ?? DocumentTypeRegistry::MODULE_SALES,
+            'workflow_type' => $definition['flow'] ?? 'order',
             'transporteur_id' => $data['transporteur_id'] ?? null,
             'do_lieu_livraison' => $data['do_lieu_livraison'] ?? null,
             'do_date_livraison' => $data['do_date_livraison'] ?? null,
