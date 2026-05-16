@@ -39,6 +39,7 @@ class DocumentWorkflowService
             },
             'doc_module' => $definition['module'] ?? DocumentTypeRegistry::MODULE_SALES,
             'workflow_type' => $definition['flow'] ?? 'order',
+            'lifecycle_status' => 'draft',
             'transporteur_id' => $data['transporteur_id'] ?? null,
             'do_lieu_livraison' => $data['do_lieu_livraison'] ?? null,
             'do_date_livraison' => $data['do_date_livraison'] ?? null,

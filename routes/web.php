@@ -28,42 +28,45 @@ Route::middleware('auth')->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->middleware('can:view-erp')->name('home');
 
     Route::prefix('erp')->name('erp.')->middleware('can:view-erp')->group(function () {
-        Route::prefix('ventes')->name('sales.')->middleware('can:commercial-area')->group(function () {
+        Route::prefix('ventes')->name('sales.')->middleware('can:documents.view')->group(function () {
             Route::get('/documents', [SalesDocumentController::class, 'index'])->name('documents.index');
-            Route::get('/documents/create', [SalesDocumentController::class, 'create'])->name('documents.create');
-            Route::post('/documents', [SalesDocumentController::class, 'store'])->name('documents.store');
+            Route::get('/documents/create', [SalesDocumentController::class, 'create'])->middleware('can:documents.create')->name('documents.create');
+            Route::post('/documents', [SalesDocumentController::class, 'store'])->middleware('can:documents.create')->name('documents.store');
         });
 
-        Route::prefix('achats')->name('purchases.')->middleware('can:commercial-area')->group(function () {
+        Route::prefix('achats')->name('purchases.')->middleware('can:documents.view')->group(function () {
             Route::get('/documents', [PurchaseDocumentController::class, 'index'])->name('documents.index');
-            Route::get('/documents/create', [PurchaseDocumentController::class, 'create'])->name('documents.create');
-            Route::post('/documents', [PurchaseDocumentController::class, 'store'])->name('documents.store');
+            Route::get('/documents/create', [PurchaseDocumentController::class, 'create'])->middleware('can:documents.create')->name('documents.create');
+            Route::post('/documents', [PurchaseDocumentController::class, 'store'])->middleware('can:documents.create')->name('documents.store');
         });
 
-        Route::prefix('stock')->name('stock.')->middleware('can:stock-area')->group(function () {
+        Route::prefix('stock')->name('stock.')->middleware('can:stocks.view')->group(function () {
             Route::get('/documents', [StockDocumentController::class, 'index'])->name('documents.index');
             Route::get('/', [StockController::class, 'index'])->name('index');
-            Route::patch('/{stock}/adjust', [StockController::class, 'adjust'])->name('adjust');
+            Route::patch('/{stock}/adjust', [StockController::class, 'adjust'])->middleware('can:stocks.adjust')->name('adjust');
         });
 
-        Route::prefix('clients')->name('clients.')->middleware('can:commercial-area')->group(function () {
+        Route::prefix('clients')->name('clients.')->middleware('can:tiers.view')->group(function () {
             Route::get('/', [CompteTController::class, 'clients'])->name('index');
         });
 
-        Route::prefix('fournisseurs')->name('suppliers.')->middleware('can:commercial-area')->group(function () {
+        Route::prefix('fournisseurs')->name('suppliers.')->middleware('can:tiers.view')->group(function () {
             Route::get('/', [CompteTController::class, 'suppliers'])->name('index');
         });
 
-        Route::prefix('payments')->name('payments.')->middleware('can:accounting-area')->group(function () {
-            Route::resource('reglements', ReglementController::class)->only(['index', 'create', 'store', 'destroy']);
+        Route::prefix('payments')->name('payments.')->middleware('can:reglements.view')->group(function () {
+            Route::get('reglements', [ReglementController::class, 'index'])->name('reglements.index');
+            Route::get('reglements/create', [ReglementController::class, 'create'])->middleware('can:reglements.create')->name('reglements.create');
+            Route::post('reglements', [ReglementController::class, 'store'])->middleware('can:reglements.create')->name('reglements.store');
+            Route::delete('reglements/{reglement}', [ReglementController::class, 'destroy'])->middleware('can:reglements.delete')->name('reglements.destroy');
         });
     });
 
     Route::middleware('can:families.view')->group(function () {
-        Route::get('/families', [FamilyController::class, 'index'])->name('families.index');
-        Route::get('/families/{family}', [FamilyController::class, 'show'])->name('families.show');
         Route::get('/families/create', [FamilyController::class, 'create'])->middleware('can:families.create')->name('families.create');
         Route::post('/families', [FamilyController::class, 'store'])->middleware('can:families.create')->name('families.store');
+        Route::get('/families', [FamilyController::class, 'index'])->name('families.index');
+        Route::get('/families/{family}', [FamilyController::class, 'show'])->name('families.show');
         Route::get('/families/{family}/edit', [FamilyController::class, 'edit'])->middleware('can:families.update')->name('families.edit');
         Route::put('/families/{family}', [FamilyController::class, 'update'])->middleware('can:families.update')->name('families.update');
         Route::patch('/families/{family}', [FamilyController::class, 'update'])->middleware('can:families.update');
@@ -71,11 +74,11 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('can:articles.view')->group(function () {
+        Route::get('/articles/create', [ArticleController::class, 'create'])->middleware('can:articles.create')->name('articles.create');
+        Route::post('/articles', [ArticleController::class, 'store'])->middleware('can:articles.create')->name('articles.store');
         Route::get('/articles', [ArticleController::class, 'index'])->name('articles.index');
         Route::get('/articles/{article}', [ArticleController::class, 'show'])->name('articles.show');
         Route::get('/articles/{article}/export-pdf', [ArticleController::class, 'exportPdf'])->name('articles.export-pdf');
-        Route::get('/articles/create', [ArticleController::class, 'create'])->middleware('can:articles.create')->name('articles.create');
-        Route::post('/articles', [ArticleController::class, 'store'])->middleware('can:articles.create')->name('articles.store');
         Route::get('/articles/{article}/edit', [ArticleController::class, 'edit'])->middleware('can:articles.update')->name('articles.edit');
         Route::put('/articles/{article}', [ArticleController::class, 'update'])->middleware('can:articles.update')->name('articles.update');
         Route::patch('/articles/{article}', [ArticleController::class, 'update'])->middleware('can:articles.update');
@@ -93,10 +96,10 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('can:tiers.view')->group(function () {
-        Route::get('/tiers', [CompteTController::class, 'index'])->name('tiers.index');
-        Route::get('/tiers/{tier}', [CompteTController::class, 'show'])->name('tiers.show');
         Route::get('/tiers/create', [CompteTController::class, 'create'])->middleware('can:tiers.create')->name('tiers.create');
         Route::post('/tiers', [CompteTController::class, 'store'])->middleware('can:tiers.create')->name('tiers.store');
+        Route::get('/tiers', [CompteTController::class, 'index'])->name('tiers.index');
+        Route::get('/tiers/{tier}', [CompteTController::class, 'show'])->name('tiers.show');
         Route::get('/tiers/{tier}/edit', [CompteTController::class, 'edit'])->middleware('can:tiers.update')->name('tiers.edit');
         Route::put('/tiers/{tier}', [CompteTController::class, 'update'])->middleware('can:tiers.update')->name('tiers.update');
         Route::patch('/tiers/{tier}', [CompteTController::class, 'update'])->middleware('can:tiers.update');
@@ -133,13 +136,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/achats/documents', [PurchaseDocumentController::class, 'index'])->name('documents.purchases');
         Route::post('/documents/{document}/duplicate', [DocumentController::class, 'duplicate'])->middleware('can:documents.duplicate')->name('documents.duplicate');
         Route::patch('/documents/{document}/status', [DocumentController::class, 'updateStatus'])->middleware('can:documents.status')->name('documents.update-status');
-        Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
         Route::get('/documents/create', [DocumentController::class, 'create'])->middleware('can:documents.create')->name('documents.create');
         Route::post('/documents', [DocumentController::class, 'store'])->middleware('can:documents.create')->name('documents.store');
+        Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
         Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
         Route::get('/documents/{document}/edit', [DocumentController::class, 'edit'])->middleware('can:documents.update')->name('documents.edit');
         Route::put('/documents/{document}', [DocumentController::class, 'update'])->middleware('can:documents.update')->name('documents.update');
         Route::patch('/documents/{document}', [DocumentController::class, 'update'])->middleware('can:documents.update');
+        Route::patch('/documents/{document}/validate', [DocumentController::class, 'validateLifecycle'])->middleware('can:documents.update')->name('documents.validate');
+        Route::patch('/documents/{document}/post', [DocumentController::class, 'postLifecycle'])->middleware('can:documents.status')->name('documents.post');
+        Route::patch('/documents/{document}/cancel', [DocumentController::class, 'cancelLifecycle'])->middleware('can:documents.delete')->name('documents.cancel');
         Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->middleware('can:documents.delete')->name('documents.destroy');
     });
 

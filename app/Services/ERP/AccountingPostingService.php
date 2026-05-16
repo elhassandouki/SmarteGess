@@ -99,7 +99,7 @@ class AccountingPostingService
 
     private function insertLine(int $entryId, string $accountCode, string $accountLabel, float $debit, float $credit): void
     {
-        DB::table('entry_lines')->insert([
+        DB::table('journal_entry_lines')->insert([
             'journal_entry_id' => $entryId,
             'account_code' => $accountCode,
             'account_label' => $accountLabel,

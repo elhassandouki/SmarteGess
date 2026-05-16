@@ -6,6 +6,7 @@ use App\Models\Article;
 use App\Models\CompteT;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class BusinessFlowTest extends TestCase
@@ -15,6 +16,9 @@ class BusinessFlowTest extends TestCase
     public function test_authenticated_user_can_create_article_with_business_fields(): void
     {
         $user = User::factory()->create(['role' => 'COMMERCIAL']);
+        Permission::findOrCreate('articles.create', 'web');
+        Permission::findOrCreate('articles.view', 'web');
+        $user->givePermissionTo(['articles.create', 'articles.view']);
 
         $this->actingAs($user)->post(route('articles.store'), [
             'ar_ref' => 'ART-100',
@@ -42,6 +46,9 @@ class BusinessFlowTest extends TestCase
     public function test_document_creation_computes_totals_from_lines_and_taxes(): void
     {
         $user = User::factory()->create(['role' => 'COMMERCIAL']);
+        Permission::findOrCreate('documents.create', 'web');
+        Permission::findOrCreate('documents.view', 'web');
+        $user->givePermissionTo(['documents.create', 'documents.view']);
         $article = Article::create([
             'ar_ref' => 'ART-200',
             'ar_design' => 'Article facture',

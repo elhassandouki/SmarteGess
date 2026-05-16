@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class AccessControlTest extends TestCase
@@ -19,6 +20,9 @@ class AccessControlTest extends TestCase
     public function test_commercial_can_access_documents_but_not_accounting_payments(): void
     {
         $user = User::factory()->create(['role' => 'COMMERCIAL']);
+        Permission::findOrCreate('documents.view', 'web');
+        Permission::findOrCreate('reglements.view', 'web');
+        $user->givePermissionTo('documents.view');
 
         $this->actingAs($user)
             ->get(route('documents.index'))
@@ -32,6 +36,9 @@ class AccessControlTest extends TestCase
     public function test_accountant_can_access_payments_and_stock(): void
     {
         $user = User::factory()->create(['role' => 'COMPTABLE']);
+        Permission::findOrCreate('reglements.view', 'web');
+        Permission::findOrCreate('stocks.view', 'web');
+        $user->givePermissionTo(['reglements.view', 'stocks.view']);
 
         $this->actingAs($user)
             ->get(route('reglements.index'))

@@ -24,6 +24,9 @@ class Document extends Model
         'flux_type',
         'doc_module',
         'workflow_type',
+        'lifecycle_status',
+        'posted_at',
+        'cancelled_at',
         'depot_id',
         'transporteur_id',
         'do_lieu_livraison',
@@ -41,6 +44,8 @@ class Document extends Model
         return [
             'do_date' => 'date',
             'do_date_livraison' => 'date',
+            'posted_at' => 'datetime',
+            'cancelled_at' => 'datetime',
             'do_total_ht' => 'decimal:2',
             'do_total_tva' => 'decimal:2',
             'do_total_ttc' => 'decimal:2',

@@ -12,6 +12,7 @@ use App\Models\DocumentLine;
 use App\Models\Transporteur;
 use App\Services\ERP\DocumentWorkflowService;
 use App\Services\ERP\AccountingPostingService;
+use App\Services\ERP\DocumentLifecycleService;
 use App\Services\StockMovementService;
 use App\Support\DocumentTypeRegistry;
 use Illuminate\Http\JsonResponse;
@@ -27,17 +28,20 @@ class DocumentController extends Controller
     protected StockMovementService $stockMovementService;
     protected DocumentWorkflowService $documentWorkflowService;
     protected AccountingPostingService $accountingPostingService;
+    protected DocumentLifecycleService $documentLifecycleService;
 
     public function __construct(
         StockMovementService $stockMovementService,
         DocumentWorkflowService $documentWorkflowService,
-        AccountingPostingService $accountingPostingService
+        AccountingPostingService $accountingPostingService,
+        DocumentLifecycleService $documentLifecycleService
     )
     {
         $this->middleware('auth');
         $this->stockMovementService = $stockMovementService;
         $this->documentWorkflowService = $documentWorkflowService;
         $this->accountingPostingService = $accountingPostingService;
+        $this->documentLifecycleService = $documentLifecycleService;
     }
 
     public function index(Request $request): View|JsonResponse
@@ -199,9 +203,6 @@ class DocumentController extends Controller
         DB::transaction(function () use ($data) {
             $document = Document::create($this->documentWorkflowService->buildHeaderData($data));
             $this->documentWorkflowService->syncLines($document, $data['lines']);
-            // Process stock movements
-            $this->stockMovementService->processDocumentMovement($document);
-            $this->accountingPostingService->syncDocumentPosting($document);
         });
 
         return redirect()->route('documents.index')->with('success', 'Document cree avec succes.');
@@ -247,19 +248,13 @@ class DocumentController extends Controller
         $data = $this->validateDocument($request, $document->id);
 
         DB::transaction(function () use ($document, $data) {
+            if ($document->lifecycle_status === 'posted') {
+                throw new \RuntimeException('Posted documents cannot be edited directly. Cancel first.');
+            }
             // Get old lines before deletion for stock reversal
-            $oldLines = $document->lines->map(fn ($line) => [
-                'article_id' => $line->article_id,
-                'dl_qte' => $line->dl_qte,
-            ])->toArray();
-            
             $document->update($this->documentWorkflowService->buildHeaderData($data));
             $document->lines()->delete();
             $this->documentWorkflowService->syncLines($document, $data['lines']);
-            
-            // Process stock movements (reverse old, create new)
-            $this->stockMovementService->processDocumentMovement($document, $oldLines);
-            $this->accountingPostingService->syncDocumentPosting($document);
         });
 
         return redirect()->route('documents.index')->with('success', 'Document mis a jour avec succes.');
@@ -268,9 +263,9 @@ class DocumentController extends Controller
     public function destroy(Request $request, Document $document): RedirectResponse|JsonResponse
     {
         DB::transaction(function () use ($document) {
-            // Reverse stock movements before deleting
-            $this->stockMovementService->deleteDocumentMovements($document);
-            $this->accountingPostingService->clearDocumentPosting($document->id);
+            if ($document->lifecycle_status === 'posted') {
+                $this->documentLifecycleService->cancel($document);
+            }
             $document->lines()->delete();
             $document->delete();
         });
@@ -318,9 +313,6 @@ class DocumentController extends Controller
                     'dl_montant_ttc' => $line->dl_montant_ttc,
                 ]);
             });
-            
-            // Process stock movements for the duplicate
-            $this->stockMovementService->processDocumentMovement($copy);
 
             return $copy;
         });
@@ -349,6 +341,27 @@ class DocumentController extends Controller
         return redirect()
             ->route('documents.index')
             ->with('success', 'Statut du document mis a jour avec succes.');
+    }
+
+    public function validateLifecycle(Document $document): RedirectResponse
+    {
+        $this->documentLifecycleService->validate($document);
+
+        return redirect()->route('documents.show', $document)->with('success', 'Document valide.');
+    }
+
+    public function postLifecycle(Document $document): RedirectResponse
+    {
+        $this->documentLifecycleService->post($document);
+
+        return redirect()->route('documents.show', $document)->with('success', 'Document poste.');
+    }
+
+    public function cancelLifecycle(Document $document): RedirectResponse
+    {
+        $this->documentLifecycleService->cancel($document);
+
+        return redirect()->route('documents.show', $document)->with('success', 'Document annule.');
     }
 
     protected function formData(?string $module = null): array

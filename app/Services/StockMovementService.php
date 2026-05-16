@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\InsufficientStockException;
 use App\Models\Document;
 use App\Models\DocumentLine;
 use App\Models\Depot;
@@ -86,9 +87,11 @@ class StockMovementService
         );
 
         // Update stock
-        $stock->update([
-            'stock_reel' => max(0, (float) $stock->stock_reel + $quantity),
-        ]);
+        $newStock = (float) $stock->stock_reel + $quantity;
+        if ($newStock < 0) {
+            throw new InsufficientStockException("Insufficient stock for article {$line->article_id} in depot {$depot->id}.");
+        }
+        $stock->update(['stock_reel' => $newStock]);
 
         // Create audit trail
         StockMovement::create([
@@ -126,9 +129,11 @@ class StockMovementService
         ])->first();
 
         if ($stock) {
-            $stock->update([
-                'stock_reel' => max(0, (float) $stock->stock_reel + $quantity),
-            ]);
+            $newStock = (float) $stock->stock_reel + $quantity;
+            if ($newStock < 0) {
+                throw new InsufficientStockException("Invalid reversal causing negative stock for article {$oldLine['article_id']} in depot {$depot->id}.");
+            }
+            $stock->update(['stock_reel' => $newStock]);
         }
 
         // Create audit trail for reversal
@@ -176,9 +181,11 @@ class StockMovementService
                 ])->first();
 
                 if ($stock) {
-                    $stock->update([
-                        'stock_reel' => max(0, (float) $stock->stock_reel + $quantity),
-                    ]);
+                    $newStock = (float) $stock->stock_reel + $quantity;
+                    if ($newStock < 0) {
+                        throw new InsufficientStockException("Invalid cancellation causing negative stock for article {$line->article_id} in depot {$depot->id}.");
+                    }
+                    $stock->update(['stock_reel' => $newStock]);
                 }
 
                 // Create audit trail
@@ -205,11 +212,15 @@ class StockMovementService
      */
     public function adjustStock(Stock $stock, float $newQuantity, string $reason = ''): void
     {
+        if ($newQuantity < 0) {
+            throw new InsufficientStockException('Stock adjustment cannot set a negative quantity.');
+        }
+
         $oldQuantity = (float) $stock->stock_reel;
         $difference = $newQuantity - $oldQuantity;
 
         DB::transaction(function () use ($stock, $newQuantity, $difference, $reason) {
-            $stock->update(['stock_reel' => max(0, $newQuantity)]);
+            $stock->update(['stock_reel' => $newQuantity]);
 
             StockMovement::create([
                 'article_id' => $stock->article_id,
