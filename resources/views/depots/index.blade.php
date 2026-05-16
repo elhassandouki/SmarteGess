@@ -47,32 +47,33 @@
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">Filtrer</button>
             </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100 js-reset-filters">Reinitialiser</button>
+            </div>
         </form>
     </x-adminlte-card>
 
     <x-adminlte-card theme="primary" theme-mode="outline" title="Liste des depots" icon="fas fa-warehouse">
-        <x-adminlte-datatable id="depotsTable" :heads="$heads" head-theme="light" striped hoverable bordered compressed with-buttons :config="$config">
-            @foreach ($depots as $depot)
-                <tr>
-                    <td>{{ $depot->code_depot }}</td>
-                    <td>{{ $depot->intitule }}</td>
-                    <td>{{ $depot->stocks_count }}</td>
-                    <td>
-                        <div class="d-flex justify-content-center">
-                            <a href="{{ route('depots.edit', $depot) }}" class="btn btn-xs btn-outline-primary mr-2">
-                                <i class="fas fa-pen"></i>
-                            </a>
-                            <form action="{{ route('depots.destroy', $depot) }}" method="POST" onsubmit="return confirm('Supprimer ce depot ?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-xs btn-outline-danger">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            @endforeach
-        </x-adminlte-datatable>
+        <div class="table-responsive">
+            <table id="depotsTable" class="table table-striped table-hover table-bordered mb-0">
+                <thead class="thead-dark"><tr><th>Code</th><th>Intitule</th><th>Lignes stock</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </x-adminlte-card>
 @stop
+
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if ($.fn.DataTable.isDataTable('#depotsTable')) $('#depotsTable').DataTable().destroy();
+    const t = $('#depotsTable').DataTable({
+        processing:true, serverSide:true,
+        ajax:{ url:"{{ route('depots.index') }}", data:d=>{ d.search=$('#search').val(); }},
+        columns:[{data:'code'},{data:'intitule'},{data:'stocks_count'},{data:'actions',orderable:false,searchable:false}]
+    });
+    $('#search').on('change keyup', function(){ t.ajax.reload(); });
+});
+</script>
+@endpush
+

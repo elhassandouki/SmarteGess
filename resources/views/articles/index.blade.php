@@ -69,44 +69,43 @@
                     <label class="custom-control-label" for="low_only">Stock faible</label>
                 </div>
                 <button type="submit" class="btn btn-success">Filtrer</button>
+                <button type="button" class="btn btn-outline-secondary mt-2 js-reset-filters">Reinitialiser</button>
             </div>
         </form>
     </x-adminlte-card>
 
     <x-adminlte-card theme="success" theme-mode="outline" title="Liste des articles" icon="fas fa-boxes">
-        <x-adminlte-datatable id="articlesTable" :heads="$heads" head-theme="light" striped hoverable bordered compressed with-buttons :config="$config">
-            @foreach ($articles as $article)
-                <tr>
-                    <td>{{ $article->code_article ?: $article->ar_ref }}</td>
-                    <td>{{ $article->ar_ref }}</td>
-                    <td>{{ $article->ar_design }}</td>
-                    <td>{{ $article->family?->fa_intitule ?? '-' }}</td>
-                    <td>{{ number_format((float) $article->ar_prix_achat, 2) }}</td>
-                    <td>{{ number_format((float) $article->ar_prix_vente, 2) }}</td>
-                    <td>{{ number_format((float) $article->ar_tva, 2) }}%</td>
-                    <td>
-                        <span class="badge {{ (float) $article->ar_stock_actuel <= (float) $article->ar_stock_min ? 'badge-warning' : 'badge-light' }}">
-                            {{ number_format((float) $article->ar_stock_actuel, 3) }}
-                        </span>
-                    </td>
-                    <td>{{ number_format((float) $article->ar_stock_min, 3) }}</td>
-                    <td>{{ $article->ar_unite }}</td>
-                    <td>
-                        <div class="d-flex justify-content-center">
-                            <a href="{{ route('articles.edit', $article) }}" class="btn btn-xs btn-outline-primary mr-2">
-                                <i class="fas fa-pen"></i>
-                            </a>
-                            <form action="{{ route('articles.destroy', $article) }}" method="POST" onsubmit="return confirm('Supprimer cet article ?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-xs btn-outline-danger">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            @endforeach
-        </x-adminlte-datatable>
+        <div class="table-responsive">
+            <table id="articlesTable" class="table table-striped table-hover table-bordered mb-0">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Code</th><th>Reference</th><th>Designation</th><th>Famille</th>
+                        <th>Prix achat</th><th>Prix vente</th><th>TVA</th><th>Stock</th>
+                        <th>Stock min</th><th>Unite</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </x-adminlte-card>
 @stop
+
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if ($.fn.DataTable.isDataTable('#articlesTable')) $('#articlesTable').DataTable().destroy();
+    const t = $('#articlesTable').DataTable({
+        processing: true, serverSide: true,
+        ajax: { url: "{{ route('articles.index') }}", data: d => {
+            d.search = $('#search').val(); d.family_id = $('#family_id').val(); d.low_only = $('#low_only').is(':checked') ? 1 : 0;
+        }},
+        columns: [
+            {data:'code'},{data:'ref'},{data:'designation'},{data:'famille'},{data:'prix_achat'},{data:'prix_vente'},
+            {data:'tva'},{data:'stock'},{data:'stock_min'},{data:'unite'},{data:'actions',orderable:false,searchable:false}
+        ]
+    });
+    $('#search,#family_id,#low_only').on('change keyup', function(){ t.ajax.reload(); });
+});
+</script>
+@endpush
+

@@ -120,88 +120,32 @@
             <div class="col-lg-1 col-md-6 col-12 d-flex align-items-end">
                 <button type="submit" class="btn btn-warning btn-block">Filtrer</button>
             </div>
+            <div class="col-lg-2 col-md-6 col-12 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary btn-block js-reset-filters">Reinitialiser</button>
+            </div>
         </form>
     </x-adminlte-card>
 
     <x-adminlte-card theme="warning" theme-mode="outline" title="Liste des documents" icon="fas fa-file-invoice">
-        <x-adminlte-datatable id="documentsTable" :heads="$heads" head-theme="light" striped hoverable bordered compressed with-buttons :config="$config">
-            @foreach ($documents as $document)
-                <tr>
-                    <td>{{ $document->do_piece }}</td>
-                    <td>{{ optional($document->do_date)->format('Y-m-d') }}</td>
-                    <td>{{ $types[$document->type_document_code ?: 'BC'] ?? 'N/A' }}</td>
-                    <td>{{ $document->tier?->code_tiers ?: $document->tier?->ct_num ?: '-' }}</td>
-                    <td>{{ $document->transporteur?->tr_nom ?? '-' }}</td>
-                    <td>
-                        <span class="badge badge-{{ $statusThemes[$document->do_expedition_statut] ?? 'secondary' }}">
-                            {{ ucfirst(str_replace('_', ' ', $document->do_expedition_statut)) }}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="badge badge-{{ $document->do_statut == 2 ? 'success' : ($document->do_statut == 1 ? 'warning' : 'secondary') }}">
-                            {{ $statusMap[$document->do_statut] ?? 'N/A' }}
-                        </span>
-                    </td>
-                    <td>{{ $document->lines_count }}</td>
-                    <td>{{ number_format((float) $document->do_total_ht, 2) }}</td>
-                    <td>
-                        <div class="d-flex justify-content-center flex-wrap">
-                            <a href="{{ route('documents.show', $document) }}" class="btn btn-xs btn-outline-secondary mr-2">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <button
-                                type="button"
-                                class="btn btn-xs btn-outline-dark mr-2 mb-1 quick-view-btn"
-                                data-toggle="modal"
-                                data-target="#quickViewModal"
-                                data-piece="{{ $document->do_piece }}"
-                                data-date="{{ optional($document->do_date)->format('Y-m-d') }}"
-                                data-type="{{ $types[$document->type_document_code ?: 'BC'] ?? 'N/A' }}"
-                                data-tier="{{ $document->tier?->code_tiers ?: $document->tier?->ct_num ?: '-' }}"
-                                data-total="{{ number_format((float) $document->do_total_ttc, 2) }}"
-                                data-lines="{{ $document->lines_count }}"
-                            >
-                                <i class="fas fa-search-plus"></i>
-                            </button>
-                            <a href="{{ route('documents.edit', $document) }}" class="btn btn-xs btn-outline-primary mr-2">
-                                <i class="fas fa-pen"></i>
-                            </a>
-                            <form action="{{ route('documents.duplicate', $document) }}" method="POST" class="mr-2 mb-1">
-                                @csrf
-                                <button type="submit" class="btn btn-xs btn-outline-warning" title="Dupliquer">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </form>
-                            <button
-                                type="button"
-                                class="btn btn-xs btn-outline-success mr-2 mb-1 quick-status-btn"
-                                data-toggle="modal"
-                                data-target="#quickStatusModal"
-                                data-action="{{ route('documents.update-status', $document) }}"
-                                data-current="{{ $document->do_expedition_statut }}"
-                            >
-                                <i class="fas fa-shipping-fast"></i>
-                            </button>
-                            <a href="{{ route('reglements.create', ['doc_id' => $document->id, 'tier_id' => $document->tier_id]) }}" class="btn btn-xs btn-outline-dark mr-2 mb-1" title="Reglement">
-                                <i class="fas fa-cash-register"></i>
-                            </a>
-                            <form action="{{ route('documents.destroy', $document) }}" method="POST" data-ajax-delete="true" data-confirm="Supprimer ce document ?">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-xs btn-outline-danger mb-1">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            @endforeach
-        </x-adminlte-datatable>
-        @if (method_exists($documents, 'links'))
-            <div class="mt-3 d-flex justify-content-end">
-                {{ $documents->links() }}
-            </div>
-        @endif
+        <div class="table-responsive">
+            <table id="documentsTable" class="table table-striped table-hover table-bordered mb-0">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Piece</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Tiers</th>
+                        <th>Transporteur</th>
+                        <th>Statut</th>
+                        <th>Paiement</th>
+                        <th>Lignes</th>
+                        <th>Total HT</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </x-adminlte-card>
 
     <x-adminlte-modal id="quickViewModal" title="Detail rapide document" theme="dark" icon="fas fa-file-alt">
@@ -235,25 +179,80 @@
 @push('js')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.quick-view-btn').forEach(function (button) {
-            button.addEventListener('click', function () {
-                document.getElementById('qvPiece').textContent = button.dataset.piece || '-';
-                document.getElementById('qvDate').textContent = button.dataset.date || '-';
-                document.getElementById('qvType').textContent = button.dataset.type || '-';
-                document.getElementById('qvTier').textContent = button.dataset.tier || '-';
-                document.getElementById('qvLines').textContent = button.dataset.lines || '-';
-                document.getElementById('qvTotal').textContent = button.dataset.total || '-';
-            });
+        if ($.fn.DataTable.isDataTable('#documentsTable')) {
+            $('#documentsTable').DataTable().destroy();
+        }
+
+        const documentsTable = $('#documentsTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: "{{ route('documents.index') }}",
+                type: "GET",
+                data: function (d) {
+                    d.module = "{{ $module }}";
+                    d.date_from = $('#date_from').val();
+                    d.date_to = $('#date_to').val();
+                    d.tier_id = $('#tier_id').val();
+                    d.type_document_code = $('#type_document_code').val();
+                    d.payment_status = $('#payment_status').val();
+                }
+            },
+            columns: [
+                { data: 'piece', name: 'piece' },
+                { data: 'date', name: 'date', orderable: true, searchable: false },
+                { data: 'type', name: 'type' },
+                { data: 'tier', name: 'tier' },
+                { data: 'transporteur', name: 'transporteur' },
+                { data: 'statut', name: 'statut', orderable: false, searchable: false },
+                { data: 'paiement', name: 'paiement', orderable: false, searchable: false },
+                { data: 'lignes', name: 'lignes', orderable: false, searchable: false },
+                { data: 'total_ht', name: 'total_ht', orderable: true, searchable: false },
+                { data: 'actions', name: 'actions', orderable: false, searchable: false }
+            ],
+            order: [[1, 'desc']],
+            responsive: true,
+            autoWidth: false,
+            pageLength: 15,
+            language: {
+                emptyTable: "Aucune donnee disponible",
+                loadingRecords: "Chargement...",
+                processing: "Traitement...",
+                search: "Rechercher:",
+                lengthMenu: "Afficher _MENU_ elements",
+                info: "Affichage de _START_ a _END_ sur _TOTAL_ elements",
+                infoEmpty: "Aucun element a afficher",
+                paginate: {
+                    previous: "Precedent",
+                    next: "Suivant"
+                }
+            }
         });
 
-        document.querySelectorAll('.quick-status-btn').forEach(function (button) {
-            button.addEventListener('click', function () {
+        $('#date_from, #date_to, #tier_id, #type_document_code, #payment_status').on('change', function () {
+            documentsTable.ajax.reload();
+        });
+
+        $(document).on('click', '.quick-view-btn', function () {
+            const button = this;
+            document.getElementById('qvPiece').textContent = button.dataset.piece || '-';
+            document.getElementById('qvDate').textContent = button.dataset.date || '-';
+            document.getElementById('qvType').textContent = button.dataset.type || '-';
+            document.getElementById('qvTier').textContent = button.dataset.tier || '-';
+            document.getElementById('qvLines').textContent = button.dataset.lines || '-';
+            document.getElementById('qvTotal').textContent = button.dataset.total || '-';
+        });
+
+        $(document).on('click', '.quick-status-btn', function () {
+            const button = this;
+            if (button.dataset.action && button.dataset.current) {
                 document.getElementById('quickStatusForm').setAttribute('action', button.dataset.action);
                 document.getElementById('quick_status_select').value = button.dataset.current;
-            });
+            }
         });
     });
 </script>
 @endpush
 
 @include('partials.erp-interactions')
+

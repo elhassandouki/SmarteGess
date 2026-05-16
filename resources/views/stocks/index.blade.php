@@ -71,39 +71,34 @@
             <div class="col-md-2 d-flex align-items-end justify-content-end">
                 <button type="submit" class="btn btn-info">Filtrer</button>
             </div>
+            <div class="col-md-2 d-flex align-items-end justify-content-end">
+                <button type="button" class="btn btn-outline-secondary js-reset-filters">Reinitialiser</button>
+            </div>
         </form>
     </x-adminlte-card>
 
     <x-adminlte-card theme="primary" theme-mode="outline" title="Etat du stock" icon="fas fa-warehouse">
-        <x-adminlte-datatable id="stocksTable" :heads="$heads" head-theme="light" striped hoverable bordered compressed with-buttons :config="$config">
-            @foreach ($stocks as $stock)
-                <tr>
-                    <td>{{ $stock->depot?->intitule ?? '-' }}</td>
-                    <td>{{ $stock->article?->code_article ?: $stock->article?->ar_ref ?: '-' }}</td>
-                    <td>{{ $stock->article?->ar_design ?? '-' }}</td>
-                    <td>{{ $stock->article?->family?->fa_intitule ?? '-' }}</td>
-                    <td>
-                        <span class="badge {{ (float) $stock->stock_reel <= (float) ($stock->article?->ar_stock_min ?? 0) ? 'badge-warning' : 'badge-light' }}">
-                            {{ number_format((float) $stock->stock_reel, 3) }}
-                        </span>
-                    </td>
-                    <td>{{ number_format((float) $stock->stock_reserve, 3) }}</td>
-                    <td>{{ number_format((float) ($stock->article?->ar_stock_min ?? 0), 3) }}</td>
-                    <td>{{ number_format((float) $stock->stock_reel * (float) ($stock->article?->ar_prix_achat ?? 0), 2) }}</td>
-                    <td>
-                        <form method="POST" action="{{ route('stocks.adjust', $stock) }}" class="form-inline justify-content-center" data-ajax="true" data-reload="true">
-                            @csrf
-                            @method('PATCH')
-                            <input type="number" step="0.001" min="0" name="stock_reel" value="{{ $stock->stock_reel }}" class="form-control form-control-sm mr-2" style="width: 92px;">
-                            <input type="number" step="0.001" min="0" name="stock_reserve" value="{{ $stock->stock_reserve }}" class="form-control form-control-sm mr-2" style="width: 92px;">
-                            <input type="hidden" name="reason" value="Ajustement rapide depuis tableau stock">
-                            <button type="submit" class="btn btn-xs btn-outline-primary">MAJ</button>
-                        </form>
-                    </td>
-                </tr>
-            @endforeach
-        </x-adminlte-datatable>
+        <div class="table-responsive">
+            <table id="stocksTable" class="table table-striped table-hover table-bordered mb-0">
+                <thead class="thead-dark"><tr><th>Depot</th><th>Code</th><th>Article</th><th>Famille</th><th>Stock reel</th><th>Reserve</th><th>Seuil min</th><th>Valorisation</th><th>Ajustement</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </x-adminlte-card>
 @stop
 
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if ($.fn.DataTable.isDataTable('#stocksTable')) $('#stocksTable').DataTable().destroy();
+    const t = $('#stocksTable').DataTable({
+        processing:true, serverSide:true, ajax:{url:"{{ route('stocks.index') }}", data:d=>{ d.search=$('#search').val(); d.depot_id=$('#depot_id').val(); d.low_only=$('#low_only').is(':checked')?1:0; }},
+        columns:[{data:'depot'},{data:'code'},{data:'article'},{data:'famille'},{data:'stock_reel'},{data:'stock_reserve'},{data:'stock_min'},{data:'valorisation'},{data:'ajustement',orderable:false,searchable:false}]
+    });
+    $('#search,#depot_id,#low_only').on('change keyup', function(){ t.ajax.reload(); });
+});
+</script>
+@endpush
+
 @include('partials.erp-interactions')
+

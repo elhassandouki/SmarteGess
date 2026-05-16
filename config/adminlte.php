@@ -16,7 +16,7 @@ return [
 
     'title' => 'SmartGess',
     'title_prefix' => '',
-    'title_postfix' => ' | Gestion',
+    'title_postfix' => '',
 
     /*
     |--------------------------------------------------------------------------
@@ -68,7 +68,7 @@ return [
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
     'logo_img_xl_class' => 'brand-image-xs',
-    'logo_img_alt' => 'SmartGess Logo',
+    'logo_img_alt' => 'Admin Logo',
 
     /*
     |--------------------------------------------------------------------------
@@ -152,12 +152,12 @@ return [
     |
     */
 
-    'layout_topnav' => false,
+    'layout_topnav' => null,
     'layout_boxed' => null,
-    'layout_fixed_sidebar' => true,
-    'layout_fixed_navbar' => true,
+    'layout_fixed_sidebar' => null,
+    'layout_fixed_navbar' => null,
     'layout_fixed_footer' => null,
-    'layout_dark_mode' => false,
+    'layout_dark_mode' => null,
 
     /*
     |--------------------------------------------------------------------------
@@ -197,8 +197,8 @@ return [
     'classes_content_header' => '',
     'classes_content' => '',
     'classes_sidebar' => 'sidebar-dark-primary elevation-4',
-    'classes_sidebar_nav' => 'text-sm',
-    'classes_topnav' => 'navbar-white navbar-light border-bottom',
+    'classes_sidebar_nav' => '',
+    'classes_topnav' => 'navbar-white navbar-light',
     'classes_topnav_nav' => 'navbar-expand',
     'classes_topnav_container' => 'container',
 
@@ -299,113 +299,78 @@ return [
     */
 
     'menu' => [
+        ['type' => 'navbar-search', 'text' => 'search', 'topnav_right' => true],
+        ['type' => 'fullscreen-widget', 'topnav_right' => true],
+        ['type' => 'sidebar-menu-search', 'text' => 'search'],
+
+        ['header' => 'Tableau De Bord'],
+        ['text' => 'Dashboard', 'route' => 'home', 'icon' => 'fas fa-fw fa-tachometer-alt', 'can' => 'view-erp'],
+
+        ['header' => 'Structure'],
+        ['text' => 'Familles d articles', 'route' => 'families.index', 'icon' => 'fas fa-fw fa-layer-group', 'can' => 'families.view'],
+        ['text' => 'Articles', 'route' => 'articles.index', 'icon' => 'fas fa-fw fa-cube', 'can' => 'articles.view'],
+        ['text' => 'Clients', 'route' => 'erp.clients.index', 'icon' => 'fas fa-fw fa-user-tie', 'can' => 'tiers.view'],
+        ['text' => 'Fournisseurs', 'route' => 'erp.suppliers.index', 'icon' => 'fas fa-fw fa-truck-loading', 'can' => 'tiers.view'],
+        ['text' => 'Tous les tiers', 'route' => 'tiers.index', 'icon' => 'fas fa-fw fa-users', 'can' => 'tiers.view'],
+        ['text' => 'Transporteurs', 'route' => 'transporteurs.index', 'icon' => 'fas fa-fw fa-truck', 'can' => 'transporteurs.view'],
+        ['text' => 'Depots de stockage', 'route' => 'depots.index', 'icon' => 'fas fa-fw fa-warehouse', 'can' => 'depots.view'],
         [
-            'type' => 'navbar-search',
-            'text' => 'search',
-            'topnav_right' => true,
+            'text' => 'Roles et permissions',
+            'icon' => 'fas fa-fw fa-user-lock',
+            'can' => 'access.roles.view',
+            'submenu' => [
+                ['text' => 'Roles', 'route' => 'access.roles.index', 'icon' => 'fas fa-fw fa-user-shield'],
+                ['text' => 'Permissions', 'route' => 'access.permissions.index', 'icon' => 'fas fa-fw fa-key'],
+            ],
         ],
+
+        ['header' => 'Traitement'],
         [
-            'type' => 'fullscreen-widget',
-            'topnav_right' => true,
-        ],
-        [
-            'type' => 'sidebar-menu-search',
-            'text' => 'search',
-        ],
-        [
-            'header' => 'Tableau de bord',
-        ],
-        [
-            'text' => 'Dashboard',
-            'route' => 'home',
-            'icon' => 'fas fa-fw fa-tachometer-alt',
-        ],
-        ['header' => 'ERP Commercial'],
-        [
-            'text' => 'Ventes / Sales',
+            'text' => 'Documents des ventes',
             'icon' => 'fas fa-fw fa-cash-register',
-            'can' => 'commercial-area',
+            'can' => 'documents.view',
             'submenu' => [
-                ['text' => 'Documents ventes', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-folder-open'],
-                ['text' => 'Factures clients', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-file-invoice-dollar'],
-                ['text' => 'Devis', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-file-signature'],
-                ['text' => 'Bons de livraison', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-truck-loading'],
-                ['text' => 'Commandes clients', 'route' => 'documents.sales', 'icon' => 'fas fa-fw fa-shopping-basket'],
+                ['text' => 'Saisir un document vente', 'route' => 'erp.sales.documents.create', 'icon' => 'fas fa-fw fa-plus-circle'],
+                ['text' => 'Liste des ventes', 'route' => 'erp.sales.documents.index', 'icon' => 'fas fa-fw fa-file-alt'],
             ],
         ],
         [
-            'text' => 'Achats / Purchases',
+            'text' => 'Documents des achats',
             'icon' => 'fas fa-fw fa-dolly-flatbed',
-            'can' => 'commercial-area',
+            'can' => 'documents.view',
             'submenu' => [
-                ['text' => 'Documents achats', 'route' => 'documents.purchases', 'icon' => 'fas fa-fw fa-folder-open'],
-                ['text' => 'Factures fournisseurs', 'route' => 'documents.purchases', 'icon' => 'fas fa-fw fa-file-invoice'],
-                ['text' => 'Commandes fournisseurs', 'route' => 'documents.purchases', 'icon' => 'fas fa-fw fa-clipboard-check'],
+                ['text' => 'Saisir un document achat', 'route' => 'erp.purchases.documents.create', 'icon' => 'fas fa-fw fa-plus-square'],
+                ['text' => 'Liste des achats', 'route' => 'erp.purchases.documents.index', 'icon' => 'fas fa-fw fa-file-invoice'],
             ],
         ],
         [
-            'text' => 'Stock & Inventaire',
-            'icon' => 'fas fa-fw fa-warehouse',
-            'can' => 'commercial-area',
+            'text' => 'Documents des stocks',
+            'icon' => 'fas fa-fw fa-exchange-alt',
+            'can' => 'stocks.view',
             'submenu' => [
-                ['text' => 'Etat du stock', 'route' => 'stocks.index', 'icon' => 'fas fa-fw fa-boxes'],
-                ['text' => 'Documents stock', 'route' => 'documents.stock', 'icon' => 'fas fa-fw fa-folder-open'],
-                ['text' => 'Mouvements de stock', 'route' => 'documents.stock', 'icon' => 'fas fa-fw fa-exchange-alt'],
-                ['text' => 'Ajustements inventaire', 'route' => 'documents.stock', 'icon' => 'fas fa-fw fa-sliders-h'],
-                ['text' => 'Transferts', 'route' => 'documents.stock', 'icon' => 'fas fa-fw fa-random'],
-                ['text' => 'Articles', 'route' => 'articles.index', 'icon' => 'fas fa-fw fa-cube'],
-                ['text' => 'Familles', 'route' => 'families.index', 'icon' => 'fas fa-fw fa-layer-group'],
-                ['text' => 'Depots', 'route' => 'depots.index', 'icon' => 'fas fa-fw fa-people-carry'],
+                ['text' => 'Etat du stock', 'route' => 'erp.stock.index', 'icon' => 'fas fa-fw fa-boxes'],
+                ['text' => 'Liste mouvements stock', 'route' => 'erp.stock.documents.index', 'icon' => 'fas fa-fw fa-list'],
             ],
         ],
         [
-            'text' => 'Clients & Fournisseurs',
-            'icon' => 'fas fa-fw fa-users',
+            'text' => 'Gestion des reglements',
+            'icon' => 'fas fa-fw fa-money-check-alt',
+            'can' => 'reglements.view',
             'submenu' => [
-                ['text' => 'Clients', 'route' => 'tiers.clients', 'icon' => 'fas fa-fw fa-user-tie'],
-                ['text' => 'Fournisseurs', 'route' => 'tiers.suppliers', 'icon' => 'fas fa-fw fa-truck-loading'],
-                ['text' => 'Base tiers', 'route' => 'tiers.index', 'icon' => 'fas fa-fw fa-address-book'],
-                ['text' => 'Transporteurs', 'route' => 'transporteurs.index', 'icon' => 'fas fa-fw fa-truck'],
+                ['text' => 'Saisir un reglement', 'route' => 'erp.payments.reglements.create', 'icon' => 'fas fa-fw fa-plus'],
+                ['text' => 'Liste des reglements', 'route' => 'erp.payments.reglements.index', 'icon' => 'fas fa-fw fa-list'],
             ],
         ],
-        [
-            'header' => 'Actions Rapides',
-        ],
-        [
-            'text' => 'Nouveau document vente',
-            'url' => 'documents/create?module=sales',
-            'icon' => 'fas fa-fw fa-plus-circle',
-            'can' => 'commercial-area',
-        ],
-        [
-            'text' => 'Nouveau document achat',
-            'url' => 'documents/create?module=purchase',
-            'icon' => 'fas fa-fw fa-plus-square',
-        ],
-        [
-            'text' => 'Nouveau client',
-            'route' => 'tiers.clients',
-            'icon' => 'fas fa-fw fa-user-plus',
-        ],
-        [
-            'text' => 'Comptabilite',
-            'icon' => 'fas fa-fw fa-calculator',
-            'can' => 'accounting-area',
-            'submenu' => [
-                ['text' => 'Reglements', 'route' => 'reglements.index', 'icon' => 'fas fa-fw fa-money-check-alt'],
-                ['text' => 'Ecritures (a venir)', 'icon' => 'far fa-fw fa-circle', 'url' => '#'],
-                ['text' => 'Balance (a venir)', 'icon' => 'far fa-fw fa-circle', 'url' => '#'],
-            ],
-        ],
-        [
-            'header' => 'Session',
-        ],
-        [
-            'text' => 'Deconnexion',
-            'route' => 'logout',
-            'icon' => 'fas fa-fw fa-sign-out-alt',
-            'method' => 'post',
-        ],
+        ['text' => 'Recherche de documents', 'route' => 'documents.index', 'icon' => 'fas fa-fw fa-search', 'can' => 'documents.view'],
+
+        ['header' => 'Etat'],
+        ['text' => 'Tableau de bord commercial', 'route' => 'home', 'icon' => 'fas fa-fw fa-chart-line', 'can' => 'view-erp'],
+        ['text' => 'Interrogation clients', 'route' => 'erp.clients.index', 'icon' => 'fas fa-fw fa-address-book', 'can' => 'tiers.view'],
+        ['text' => 'Interrogation fournisseurs', 'route' => 'erp.suppliers.index', 'icon' => 'fas fa-fw fa-truck-loading', 'can' => 'tiers.view'],
+        ['text' => 'Mouvements de stock', 'route' => 'erp.stock.documents.index', 'icon' => 'fas fa-fw fa-box-open', 'can' => 'stocks.view'],
+
+        ['header' => 'Session'],
+        ['text' => 'Deconnexion', 'route' => 'logout', 'icon' => 'fas fa-fw fa-sign-out-alt', 'method' => 'post'],
     ],
 
     /*
@@ -444,7 +409,7 @@ return [
 
     'plugins' => [
         'Datatables' => [
-            'active' => true,
+            'active' => false,
             'files' => [
                 [
                     'type' => 'js',
@@ -460,71 +425,6 @@ return [
                     'type' => 'css',
                     'asset' => false,
                     'location' => '//cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css',
-                ],
-            ],
-        ],
-        'DatatablesPlugins' => [
-            'active' => true,
-            'files' => [
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js',
-                ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap4.min.js',
-                ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-                ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js',
-                ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js',
-                ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js',
-                ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js',
-                ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/buttons/2.4.2/js/buttons.colVis.min.js',
-                ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js',
-                ],
-                [
-                    'type' => 'js',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js',
-                ],
-                [
-                    'type' => 'css',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap4.min.css',
-                ],
-                [
-                    'type' => 'css',
-                    'asset' => false,
-                    'location' => '//cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css',
                 ],
             ],
         ],

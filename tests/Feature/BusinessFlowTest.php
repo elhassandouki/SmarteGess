@@ -14,7 +14,7 @@ class BusinessFlowTest extends TestCase
 
     public function test_authenticated_user_can_create_article_with_business_fields(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'COMMERCIAL']);
 
         $this->actingAs($user)->post(route('articles.store'), [
             'ar_ref' => 'ART-100',
@@ -41,7 +41,7 @@ class BusinessFlowTest extends TestCase
 
     public function test_document_creation_computes_totals_from_lines_and_taxes(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'COMMERCIAL']);
         $article = Article::create([
             'ar_ref' => 'ART-200',
             'ar_design' => 'Article facture',

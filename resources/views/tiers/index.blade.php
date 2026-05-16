@@ -86,6 +86,9 @@
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">Filtrer</button>
             </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100 js-reset-filters">Reinitialiser</button>
+            </div>
         </form>
         <div class="mt-2">
             <div class="btn-group btn-group-sm">
@@ -97,76 +100,12 @@
     </x-adminlte-card>
 
     <x-adminlte-card theme="primary" theme-mode="outline" title="Base tiers" icon="fas fa-users">
-        <x-adminlte-datatable id="tiersTable" :heads="$heads" head-theme="light" striped hoverable bordered compressed with-buttons :config="$config">
-            @foreach ($tiers as $tier)
-                <tr>
-                    <td>{{ $tier->ct_num }}</td>
-                    <td>{{ $tier->code_tiers ?: '-' }}</td>
-                    <td>
-                        <div class="font-weight-bold">{{ $tier->ct_intitule }}</div>
-                        <small class="text-muted">{{ $tier->ct_adresse ?: 'Adresse non renseignee' }}</small>
-                    </td>
-                    <td>
-                        <span class="badge badge-{{ $typeThemes[$tier->ct_type] ?? 'secondary' }}">
-                            {{ ucfirst($tier->ct_type) }}
-                        </span>
-                    </td>
-                    <td>{{ $tier->ct_telephone ?: '-' }}</td>
-                    <td>{{ $tier->ct_ice ?: '-' }}</td>
-                    <td>{{ (int) $tier->ct_delai_paiement }} j</td>
-                    <td>{{ $tier->documents_count }}</td>
-                    <td>
-                        <div class="d-flex justify-content-center">
-                            <a href="{{ route('tiers.edit', $tier) }}" class="btn btn-xs btn-outline-primary mr-2">
-                                <i class="fas fa-pen"></i>
-                            </a>
-                            <button
-                                type="button"
-                                class="btn btn-xs btn-outline-info mr-2 quick-tier-view-btn"
-                                data-toggle="modal"
-                                data-target="#quickTierViewModal"
-                                data-code="{{ $tier->code_tiers ?: $tier->ct_num }}"
-                                data-intitule="{{ $tier->ct_intitule }}"
-                                data-type="{{ ucfirst($tier->ct_type) }}"
-                                data-telephone="{{ $tier->ct_telephone ?: '-' }}"
-                                data-ice="{{ $tier->ct_ice ?: '-' }}"
-                                data-adresse="{{ $tier->ct_adresse ?: '-' }}"
-                                data-delai="{{ (int) $tier->ct_delai_paiement }}"
-                                data-docs="{{ $tier->documents_count }}"
-                            >
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button
-                                type="button"
-                                class="btn btn-xs btn-outline-warning mr-2 quick-tier-edit-btn"
-                                data-toggle="modal"
-                                data-target="#quickTierEditModal"
-                                data-action="{{ route('tiers.update', $tier) }}"
-                                data-ct_num="{{ $tier->ct_num }}"
-                                data-code_tiers="{{ $tier->code_tiers }}"
-                                data-ct_intitule="{{ $tier->ct_intitule }}"
-                                data-ct_type="{{ $tier->ct_type }}"
-                                data-ct_telephone="{{ $tier->ct_telephone }}"
-                                data-ct_ice="{{ $tier->ct_ice }}"
-                                data-ct_if="{{ $tier->ct_if }}"
-                                data-ct_encours_max="{{ $tier->ct_encours_max }}"
-                                data-ct_delai_paiement="{{ $tier->ct_delai_paiement }}"
-                                data-ct_adresse="{{ $tier->ct_adresse }}"
-                            >
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <form action="{{ route('tiers.destroy', $tier) }}" method="POST" data-ajax-delete="true" data-confirm="Supprimer ce tiers ?">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-xs btn-outline-danger">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            @endforeach
-        </x-adminlte-datatable>
+        <div class="table-responsive">
+            <table id="tiersTable" class="table table-striped table-hover table-bordered mb-0">
+                <thead class="thead-dark"><tr><th>Numero</th><th>Code</th><th>Intitule</th><th>Type</th><th>Telephone</th><th>ICE</th><th>Delai</th><th>Documents</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </x-adminlte-card>
 
     <x-adminlte-modal id="quickTierViewModal" title="Detail tiers" theme="info" icon="fas fa-address-card">
@@ -255,6 +194,13 @@
 @push('js')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        if ($.fn.DataTable.isDataTable('#tiersTable')) $('#tiersTable').DataTable().destroy();
+        const t = $('#tiersTable').DataTable({
+            processing:true, serverSide:true, ajax:{url:"{{ route('tiers.index') }}", data:d=>{ d.search=$('#search').val(); d.type=$('#type').val(); d.entity="{{ $entity ?? '' }}"; }},
+            columns:[{data:'numero'},{data:'code'},{data:'intitule'},{data:'type'},{data:'telephone'},{data:'ice'},{data:'delai'},{data:'documents'},{data:'actions',orderable:false,searchable:false}]
+        });
+        $('#search,#type').on('change keyup', function(){ t.ajax.reload(); });
+
         document.querySelectorAll('.quick-tier-view-btn').forEach(function (button) {
             button.addEventListener('click', function () {
                 document.getElementById('qtvCode').textContent = button.dataset.code || '-';
@@ -288,3 +234,4 @@
 @endpush
 
 @include('partials.erp-interactions')
+

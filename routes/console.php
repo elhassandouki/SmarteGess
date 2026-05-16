@@ -3,25 +3,82 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('app:import-gcom {--source=bd_tajhiz}', function () {
+Artisan::command('app:import-gcom {--source=tajhiadk_gestion}', function () {
     $source = (string) $this->option('source');
 
     $this->components->info("Importing business data from [{$source}] into [gestion]...");
 
-    $typeMap = [
-        'BC' => 1,
-        'DE' => 1,
-        'BL' => 2,
-        'FA' => 3,
-        'BR' => 4,
-        'FR' => 4,
-        'MS' => 4,
-    ];
+    $legacyDoTypeFromCode = static function (string $code): int {
+        return match ($code) {
+            'BL' => 2,
+            'FA', 'FF' => 3,
+            'BR', 'FR', 'MV', 'AJ', 'TR' => 4,
+            default => 1,
+        };
+    };
+
+    $resolveModule = static function (?string $raw): string {
+        $value = mb_strtolower(trim((string) $raw));
+
+        return match (true) {
+            str_contains($value, 'achat') => 'purchase',
+            str_contains($value, 'stock'),
+            str_contains($value, 'invent') => 'stock',
+            default => 'sales',
+        };
+    };
+
+    $resolveTypeCode = static function (string $module, ?string $piece): string {
+        $pieceCode = strtoupper(trim((string) $piece));
+
+        if ($module === 'purchase') {
+            return match ($pieceCode) {
+                'FA', 'FF' => 'FF',
+                default => 'BA',
+            };
+        }
+
+        if ($module === 'stock') {
+            return match ($pieceCode) {
+                'TR' => 'TR',
+                'AJ' => 'AJ',
+                default => 'MV',
+            };
+        }
+
+        return match ($pieceCode) {
+            'DE', 'BC', 'BL', 'FA', 'BR', 'FR' => $pieceCode,
+            default => 'BC',
+        };
+    };
+
+    $workflowFromCode = static function (string $code): string {
+        return match ($code) {
+            'DE' => 'quote',
+            'BC', 'BA' => 'order',
+            'BL' => 'delivery',
+            'FA', 'FF' => 'invoice',
+            'BR' => 'return',
+            'FR' => 'credit_note',
+            'AJ' => 'adjustment',
+            'TR' => 'transfer',
+            default => 'movement',
+        };
+    };
+
+    $fluxFromModule = static function (string $module): string {
+        return match ($module) {
+            'purchase' => 'achat',
+            'stock' => 'stock',
+            default => 'vente',
+        };
+    };
 
     $quantityColumnMap = [
         'BC' => 'qte_BC',
@@ -99,6 +156,12 @@ Artisan::command('app:import-gcom {--source=bd_tajhiz}', function () {
     };
 
     $now = now();
+    $docColumns = Schema::getColumnListing('f_docentete');
+    $hasTypeCode = in_array('type_document_code', $docColumns, true);
+    $hasDocModule = in_array('doc_module', $docColumns, true);
+    $hasWorkflowType = in_array('workflow_type', $docColumns, true);
+    $hasFluxType = in_array('flux_type', $docColumns, true);
+    $hasDepotIdOnDoc = in_array('depot_id', $docColumns, true);
 
     DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
@@ -113,8 +176,26 @@ Artisan::command('app:import-gcom {--source=bd_tajhiz}', function () {
     DB::table('f_transporteurs')->truncate();
     DB::table('f_articles')->truncate();
     DB::table('f_familles')->truncate();
+    if (Schema::hasTable('f_stock')) {
+        DB::table('f_stock')->truncate();
+    }
 
-    $isTajhiz = in_array($source, ['bd_tajhiz', 'bd_tajhiz25'], true);
+    $principalDepotId = null;
+    if (Schema::hasTable('f_depots')) {
+        DB::table('f_depots')->updateOrInsert(
+            ['id' => 1],
+            [
+                'code_depot' => 'DEPOT-PRINCIPAL',
+                'intitule' => 'Depot principal',
+                'updated_at' => $now,
+                'created_at' => $now,
+            ]
+        );
+        $principalDepotId = 1;
+    }
+
+    $isTajhiz = in_array($source, ['bd_tajhiz', 'bd_tajhiz25', 'tajhiadk_gestion'], true);
+    $stockByArticle = collect();
 
     if ($isTajhiz) {
         $families = collect(DB::table("{$source}.famille_article")->orderBy('id')->get());
@@ -230,12 +311,15 @@ Artisan::command('app:import-gcom {--source=bd_tajhiz}', function () {
             $amountReste = (float) ($document->montant_reste ?? 0);
             $amountRegle = max(0, $amountTtc - $amountReste);
 
-            $documentRows[] = [
+            $row = [
                 'id' => $document->id,
                 'do_piece' => $makeUniqueValue($document->n_piece ?: $document->ref, $document->id, $usedPieces, 'DOC'),
                 'do_date' => $document->date ?? $now->toDateString(),
                 'tier_id' => $tierIdByNum[trim((string) ($document->code_tiers ?: $document->tiers))] ?? null,
-                'do_type' => $typeMap[$document->type_piece] ?? 1,
+                'do_type' => $legacyDoTypeFromCode($resolveTypeCode(
+                    $resolveModule($document->type ?? null),
+                    $document->type_piece ?? null
+                )),
                 'transporteur_id' => ! empty($document->livreur)
                     ? ($transporteurIdByName[mb_strtolower(trim($document->livreur))] ?? null)
                     : null,
@@ -250,6 +334,26 @@ Artisan::command('app:import-gcom {--source=bd_tajhiz}', function () {
                 'created_at' => $document->created_at ?? $now,
                 'updated_at' => $document->updated_at ?? $now,
             ];
+
+            $module = $resolveModule($document->type ?? null);
+            $typeCode = $resolveTypeCode($module, $document->type_piece ?? null);
+            if ($hasTypeCode) {
+                $row['type_document_code'] = $typeCode;
+            }
+            if ($hasDocModule) {
+                $row['doc_module'] = $module;
+            }
+            if ($hasWorkflowType) {
+                $row['workflow_type'] = $workflowFromCode($typeCode);
+            }
+            if ($hasFluxType) {
+                $row['flux_type'] = $fluxFromModule($module);
+            }
+            if ($hasDepotIdOnDoc && $principalDepotId !== null && $module === 'stock') {
+                $row['depot_id'] = $principalDepotId;
+            }
+
+            $documentRows[] = $row;
         }
 
         if ($documentRows !== []) {
@@ -441,12 +545,15 @@ Artisan::command('app:import-gcom {--source=bd_tajhiz}', function () {
 
         foreach ($documents as $document) {
             $amountTtc = (float) ($document->total_ttc ?? 0);
-            $documentRows[] = [
+            $row = [
                 'id' => $document->id,
                 'do_piece' => $makeUniqueValue($makePiece($document), $document->id, $usedPieces, 'DOC'),
                 'do_date' => $document->date ?? $now->toDateString(),
                 'tier_id' => $document->tiers_id,
-                'do_type' => $typeMap[$document->type] ?? 1,
+                'do_type' => $legacyDoTypeFromCode($resolveTypeCode(
+                    $resolveModule($document->type ?? null),
+                    $document->type_piece ?? null
+                )),
                 'transporteur_id' => $document->expedition_id,
                 'do_lieu_livraison' => null,
                 'do_date_livraison' => $document->date_livraison,
@@ -459,6 +566,26 @@ Artisan::command('app:import-gcom {--source=bd_tajhiz}', function () {
                 'created_at' => $document->created_at ?? $now,
                 'updated_at' => $document->updated_at ?? $now,
             ];
+
+            $module = $resolveModule($document->type ?? null);
+            $typeCode = $resolveTypeCode($module, $document->type_piece ?? null);
+            if ($hasTypeCode) {
+                $row['type_document_code'] = $typeCode;
+            }
+            if ($hasDocModule) {
+                $row['doc_module'] = $module;
+            }
+            if ($hasWorkflowType) {
+                $row['workflow_type'] = $workflowFromCode($typeCode);
+            }
+            if ($hasFluxType) {
+                $row['flux_type'] = $fluxFromModule($module);
+            }
+            if ($hasDepotIdOnDoc && $principalDepotId !== null && $module === 'stock') {
+                $row['depot_id'] = $principalDepotId;
+            }
+
+            $documentRows[] = $row;
         }
 
         $sourceLines = collect(DB::table("{$source}.ligne_doc")
@@ -509,6 +636,27 @@ Artisan::command('app:import-gcom {--source=bd_tajhiz}', function () {
         DB::table('f_docligne')->insert($lineRows);
     }
 
+    if (Schema::hasTable('f_stock') && $principalDepotId !== null && $articles->isNotEmpty()) {
+        $stockRows = $articles->map(function (object $article) use ($isTajhiz, $stockByArticle, $principalDepotId, $now) {
+            $qty = $isTajhiz
+                ? (float) ($article->qte ?? 0)
+                : (float) ($stockByArticle[$article->id] ?? 0);
+
+            return [
+                'article_id' => $article->id,
+                'depot_id' => $principalDepotId,
+                'stock_reel' => $qty,
+                'stock_reserve' => 0,
+                'created_at' => $article->created_at ?? $now,
+                'updated_at' => $article->updated_at ?? $now,
+            ];
+        })->all();
+
+        if ($stockRows !== []) {
+            DB::table('f_stock')->insert($stockRows);
+        }
+    }
+
     DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
     $this->newLine();
@@ -522,6 +670,7 @@ Artisan::command('app:import-gcom {--source=bd_tajhiz}', function () {
             ['f_transporteurs', $isTajhiz ? count($transporteurRows) : count($expeditions)],
             ['f_docentete', count($documentRows)],
             ['f_docligne', count($lineRows)],
+            ['f_stock', Schema::hasTable('f_stock') ? DB::table('f_stock')->count() : 0],
             ['f_reglements', Schema::hasTable('f_reglements') ? DB::table('f_reglements')->count() : 0],
         ]
     );

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Depot;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,11 +16,11 @@ class DepotController extends Controller
         $this->middleware('auth');
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $search = trim((string) $request->string('search'));
 
-        $depots = Depot::query()
+        $query = Depot::query()
             ->withCount('stocks')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
@@ -28,8 +29,32 @@ class DepotController extends Controller
                         ->orWhere('intitule', 'like', '%'.$search.'%');
                 });
             })
-            ->orderBy('intitule')
-            ->get();
+            ->orderBy('intitule');
+
+        if ($request->ajax() && $request->has('draw')) {
+            $draw = (int) $request->input('draw', 1);
+            $start = max(0, (int) $request->input('start', 0));
+            $length = max(10, (int) $request->input('length', 10));
+            $recordsTotal = (clone $query)->count();
+            $recordsFiltered = $recordsTotal;
+            $rows = $query->skip($start)->take($length)->get();
+
+            $data = $rows->map(function (Depot $depot) {
+                return [
+                    'code' => e($depot->code_depot),
+                    'intitule' => e($depot->intitule),
+                    'stocks_count' => (int) $depot->stocks_count,
+                    'actions' => '<div class="btn-group btn-group-sm" role="group">'
+                        .'<a href="'.route('depots.edit', $depot).'" class="btn btn-xs btn-outline-primary mr-2"><i class="fas fa-pen"></i></a>'
+                        .'<form action="'.route('depots.destroy', $depot).'" method="POST" onsubmit="return confirm(\'Supprimer ce depot ?\');">'.csrf_field().method_field('DELETE').'<button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button></form>'
+                        .'</div>',
+                ];
+            })->all();
+
+            return response()->json(compact('draw', 'recordsTotal', 'recordsFiltered', 'data'));
+        }
+
+        $depots = $query->get();
 
         return view('depots.index', [
             'depots' => $depots,

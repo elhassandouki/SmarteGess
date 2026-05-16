@@ -22,12 +22,17 @@ class DatabaseSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissions = [
-            'view dashboard',
-            'manage users',
-            'manage families',
-            'manage articles',
-            'manage transporteurs',
-            'manage documents',
+            'view-erp',
+            'families.view', 'families.create', 'families.update', 'families.delete',
+            'articles.view', 'articles.create', 'articles.update', 'articles.delete',
+            'tiers.view', 'tiers.create', 'tiers.update', 'tiers.delete',
+            'transporteurs.view', 'transporteurs.create', 'transporteurs.update', 'transporteurs.delete',
+            'depots.view', 'depots.create', 'depots.update', 'depots.delete',
+            'documents.view', 'documents.create', 'documents.update', 'documents.delete', 'documents.duplicate', 'documents.status',
+            'stocks.view', 'stocks.adjust',
+            'reglements.view', 'reglements.create', 'reglements.delete',
+            'access.roles.view', 'access.roles.create', 'access.roles.update', 'access.roles.delete',
+            'access.permissions.view', 'access.permissions.create', 'access.permissions.update', 'access.permissions.delete',
         ];
 
         foreach ($permissions as $permission) {
@@ -42,17 +47,53 @@ class DatabaseSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
+        $commercialRole = Role::firstOrCreate([
+            'name' => 'commercial',
+            'guard_name' => 'web',
+        ]);
+
+        $comptableRole = Role::firstOrCreate([
+            'name' => 'comptable',
+            'guard_name' => 'web',
+        ]);
+
+        $magasinierRole = Role::firstOrCreate([
+            'name' => 'magasinier',
+            'guard_name' => 'web',
+        ]);
+
         $userRole = Role::firstOrCreate([
             'name' => 'user',
             'guard_name' => 'web',
         ]);
 
         $adminRole->syncPermissions(Permission::where('guard_name', 'web')->get());
-        $userRole->syncPermissions([
-            'view dashboard',
-            'manage articles',
-            'manage documents',
+        $commercialRole->syncPermissions([
+            'view-erp',
+            'families.view', 'families.create', 'families.update',
+            'articles.view', 'articles.create', 'articles.update',
+            'tiers.view', 'tiers.create', 'tiers.update',
+            'transporteurs.view', 'transporteurs.create', 'transporteurs.update',
+            'documents.view', 'documents.create', 'documents.update', 'documents.duplicate', 'documents.status',
         ]);
+        $comptableRole->syncPermissions([
+            'view-erp',
+            'families.view',
+            'articles.view',
+            'tiers.view',
+            'transporteurs.view',
+            'depots.view', 'depots.create', 'depots.update',
+            'documents.view', 'documents.status',
+            'stocks.view',
+            'reglements.view', 'reglements.create', 'reglements.delete',
+        ]);
+        $magasinierRole->syncPermissions([
+            'view-erp',
+            'articles.view',
+            'depots.view',
+            'stocks.view', 'stocks.adjust',
+        ]);
+        $userRole->syncPermissions(['view-erp']);
 
         $admin = User::firstOrCreate([
             'email' => 'admin@test.com',

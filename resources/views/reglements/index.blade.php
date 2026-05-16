@@ -97,36 +97,19 @@
             <div class="col-md-1 d-flex align-items-end">
                 <button type="submit" class="btn btn-success w-100">OK</button>
             </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100 js-reset-filters">Reinitialiser</button>
+            </div>
         </form>
     </x-adminlte-card>
 
     <x-adminlte-card theme="success" theme-mode="outline" title="Journal des reglements" icon="fas fa-cash-register">
-        <x-adminlte-datatable id="reglementsTable" :heads="$heads" head-theme="light" striped hoverable bordered compressed with-buttons :config="$config">
-            @foreach ($reglements as $reglement)
-                <tr>
-                    <td>{{ optional($reglement->rg_date)->format('Y-m-d') }}</td>
-                    <td>{{ $reglement->tier?->code_tiers ?: $reglement->tier?->ct_num ?: '-' }}</td>
-                    <td>{{ $reglement->document?->do_piece ?? '-' }}</td>
-                    <td>{{ $reglement->rg_libelle ?: '-' }}</td>
-                    <td>{{ $modes[$reglement->rg_mode_reglement] ?? 'N/A' }}</td>
-                    <td>{{ number_format((float) $reglement->rg_montant, 2) }}</td>
-                    <td>
-                        <span class="badge badge-{{ $reglement->rg_valide ? 'success' : 'secondary' }}">
-                            {{ $reglement->rg_valide ? 'Oui' : 'Non' }}
-                        </span>
-                    </td>
-                    <td>
-                        <form action="{{ route('reglements.destroy', $reglement) }}" method="POST" data-ajax-delete="true" data-confirm="Supprimer ce reglement ?">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-xs btn-outline-danger">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            @endforeach
-        </x-adminlte-datatable>
+        <div class="table-responsive">
+            <table id="reglementsTable" class="table table-striped table-hover table-bordered mb-0">
+                <thead class="thead-dark"><tr><th>Date</th><th>Tiers</th><th>Document</th><th>Libelle</th><th>Mode</th><th>Montant</th><th>Valide</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </x-adminlte-card>
 
     <x-adminlte-modal id="quickReglementModal" title="Saisie rapide reglement" theme="success" icon="fas fa-money-check-alt">
@@ -169,4 +152,18 @@
     </x-adminlte-modal>
 @stop
 
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if ($.fn.DataTable.isDataTable('#reglementsTable')) $('#reglementsTable').DataTable().destroy();
+    const t = $('#reglementsTable').DataTable({
+        processing:true, serverSide:true, ajax:{url:"{{ route('reglements.index') }}", data:d=>{ d.date_from=$('#date_from').val(); d.date_to=$('#date_to').val(); d.tier_id=$('#tier_id').val(); d.mode=$('#mode').val(); d.validated=$('#validated').val(); }},
+        columns:[{data:'date'},{data:'tiers'},{data:'document'},{data:'libelle'},{data:'mode'},{data:'montant'},{data:'valide',orderable:false,searchable:false},{data:'actions',orderable:false,searchable:false}]
+    });
+    $('#date_from,#date_to,#tier_id,#mode,#validated').on('change', function(){ t.ajax.reload(); });
+});
+</script>
+@endpush
+
 @include('partials.erp-interactions')
+

@@ -49,34 +49,32 @@
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-info w-100">Filtrer</button>
             </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100 js-reset-filters">Reinitialiser</button>
+            </div>
         </form>
     </x-adminlte-card>
 
     <x-adminlte-card theme="info" theme-mode="outline" title="Liste des transporteurs" icon="fas fa-truck">
-        <x-adminlte-datatable id="transporteursTable" :heads="$heads" head-theme="light" striped hoverable bordered compressed with-buttons :config="$config">
-            @foreach ($transporteurs as $transporteur)
-                <tr>
-                    <td>{{ $transporteur->tr_nom }}</td>
-                    <td>{{ $transporteur->tr_matricule ?: '-' }}</td>
-                    <td>{{ $transporteur->tr_chauffeur ?: '-' }}</td>
-                    <td>{{ $transporteur->tr_telephone ?: '-' }}</td>
-                    <td>{{ $transporteur->documents_count }}</td>
-                    <td>
-                        <div class="d-flex justify-content-center">
-                            <a href="{{ route('transporteurs.edit', $transporteur) }}" class="btn btn-xs btn-outline-primary mr-2">
-                                <i class="fas fa-pen"></i>
-                            </a>
-                            <form action="{{ route('transporteurs.destroy', $transporteur) }}" method="POST" onsubmit="return confirm('Supprimer ce transporteur ?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-xs btn-outline-danger">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            @endforeach
-        </x-adminlte-datatable>
+        <div class="table-responsive">
+            <table id="transporteursTable" class="table table-striped table-hover table-bordered mb-0">
+                <thead class="thead-dark"><tr><th>Nom</th><th>Matricule</th><th>Chauffeur</th><th>Telephone</th><th>Documents</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </x-adminlte-card>
 @stop
+
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if ($.fn.DataTable.isDataTable('#transporteursTable')) $('#transporteursTable').DataTable().destroy();
+    const t = $('#transporteursTable').DataTable({
+        processing:true, serverSide:true, ajax:{url:"{{ route('transporteurs.index') }}", data:d=>{ d.search=$('#search').val(); }},
+        columns:[{data:'nom'},{data:'matricule'},{data:'chauffeur'},{data:'telephone'},{data:'documents'},{data:'actions',orderable:false,searchable:false}]
+    });
+    $('#search').on('change keyup', function(){ t.ajax.reload(); });
+});
+</script>
+@endpush
+

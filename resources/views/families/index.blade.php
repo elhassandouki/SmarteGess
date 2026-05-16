@@ -53,32 +53,33 @@
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">Filtrer</button>
             </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100 js-reset-filters">Reinitialiser</button>
+            </div>
         </form>
     </x-adminlte-card>
 
     <x-adminlte-card theme="primary" theme-mode="outline" title="Liste des familles" icon="fas fa-layer-group">
-        <x-adminlte-datatable id="familiesTable" :heads="$heads" head-theme="light" striped hoverable bordered compressed with-buttons :config="$config">
-            @foreach ($families as $family)
-                <tr>
-                    <td>{{ $family->fa_code }}</td>
-                    <td>{{ $family->fa_intitule }}</td>
-                    <td>{{ $family->articles_count }}</td>
-                    <td>
-                        <div class="d-flex justify-content-center">
-                            <a href="{{ route('families.edit', $family) }}" class="btn btn-xs btn-outline-primary mr-2">
-                                <i class="fas fa-pen"></i>
-                            </a>
-                            <form action="{{ route('families.destroy', $family) }}" method="POST" onsubmit="return confirm('Supprimer cette famille ?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-xs btn-outline-danger">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            @endforeach
-        </x-adminlte-datatable>
+        <div class="table-responsive">
+            <table id="familiesTable" class="table table-striped table-hover table-bordered mb-0">
+                <thead class="thead-dark"><tr><th>Code</th><th>Intitule</th><th>Nb articles</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </x-adminlte-card>
 @stop
+
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if ($.fn.DataTable.isDataTable('#familiesTable')) $('#familiesTable').DataTable().destroy();
+    const t = $('#familiesTable').DataTable({
+        processing:true, serverSide:true,
+        ajax:{ url:"{{ route('families.index') }}", data:d=>{ d.search=$('#search').val(); d.min_articles=$('#min_articles').val(); }},
+        columns:[{data:'code'},{data:'intitule'},{data:'articles_count'},{data:'actions',orderable:false,searchable:false}]
+    });
+    $('#search,#min_articles').on('change keyup', function(){ t.ajax.reload(); });
+});
+</script>
+@endpush
+

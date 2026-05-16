@@ -71,6 +71,7 @@
     @endif
 
     {{-- Custom Stylesheets (post AdminLTE) --}}
+    <link rel="stylesheet" href="{{ asset('css/erp-ui.css') }}">
     @yield('adminlte_css')
 
     {{-- Favicon --}}
@@ -138,6 +139,49 @@
 
     {{-- Custom Scripts --}}
     @yield('adminlte_js')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!window.jQuery || !$.fn || !$.fn.DataTable) return;
+
+            $('.js-auto-datatable').each(function () {
+                if ($.fn.DataTable.isDataTable(this)) return;
+
+                $(this).DataTable({
+                    responsive: true,
+                    autoWidth: false,
+                    pageLength: 10,
+                    order: [],
+                    language: {
+                        emptyTable: 'Aucune donnee disponible',
+                        loadingRecords: 'Chargement...',
+                        processing: 'Traitement...',
+                        search: 'Rechercher:',
+                        lengthMenu: 'Afficher _MENU_ elements',
+                        info: 'Affichage de _START_ a _END_ sur _TOTAL_ elements',
+                        infoEmpty: 'Aucun element a afficher',
+                        paginate: {
+                            previous: 'Precedent',
+                            next: 'Suivant'
+                        }
+                    }
+                });
+            });
+        });
+
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('.js-reset-filters');
+            if (!button) return;
+
+            const form = button.closest('form');
+            if (!form) return;
+
+            form.reset();
+            form.querySelectorAll('select').forEach(function (select) {
+                select.selectedIndex = 0;
+            });
+            form.submit();
+        });
+    </script>
 
 </body>
 

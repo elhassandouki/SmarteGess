@@ -1,0 +1,90 @@
+:root {
+    --erp-primary: #1f6f8b;
+    --erp-accent: #f39c12;
+    --erp-bg-soft: #f4f6f9;
+    --erp-text: #2c3e50;
+}
+
+body {
+    color: var(--erp-text);
+}
+
+.content-header h1 {
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.content-header small {
+    display: inline-block;
+    margin-top: 2px;
+}
+
+.card {
+    border-radius: 0.6rem;
+    box-shadow: 0 6px 18px rgba(31, 47, 70, 0.08);
+}
+
+.card .card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.card .card-title {
+    font-weight: 600;
+}
+
+.btn {
+    border-radius: 0.45rem;
+    font-weight: 600;
+}
+
+.btn-xs {
+    border-radius: 0.35rem;
+}
+
+.main-sidebar .nav-sidebar .nav-item > .nav-link {
+    border-radius: 0.45rem;
+    margin-bottom: 4px;
+}
+
+.main-sidebar .nav-sidebar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.table thead th {
+    border-top: 0;
+    font-size: 0.84rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.table td,
+.table th {
+    vertical-align: middle;
+}
+
+.badge {
+    border-radius: 999px;
+    padding: 0.35rem 0.55rem;
+}
+
+.small-box {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.small-box .inner p {
+    font-weight: 600;
+}
+
+@media (max-width: 767.98px) {
+    .content-header .btn,
+    .content-header .btn-group {
+        margin-top: 10px;
+        width: 100%;
+    }
+
+    .content-header .btn-group .btn {
+        flex: 1;
+    }
+}

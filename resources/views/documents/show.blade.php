@@ -98,7 +98,7 @@
     </div>
 
     <x-adminlte-card theme="secondary" theme-mode="outline" title="Lignes du document" icon="fas fa-list">
-        <x-adminlte-datatable id="documentLinesTable" :heads="$heads" head-theme="light" striped hoverable bordered compressed :config="$config">
+        <x-adminlte-datatable id="documentLinesTable" :heads="$heads" head-theme="dark" striped hoverable bordered compressed :config="$config">
             @foreach ($document->lines as $line)
                 <tr>
                     <td>{{ $line->article?->code_article ?: $line->article?->ar_ref }} - {{ $line->article?->ar_design }}</td>
@@ -115,7 +115,7 @@
     {{-- Payment History --}}
     @if ($document->reglements->count() > 0)
         <x-adminlte-card theme="success" theme-mode="outline" title="Historique des paiements" icon="fas fa-money-bill">
-            <x-adminlte-datatable id="paymentsTable" :heads="$paymentHeads" head-theme="light" striped hoverable bordered compressed :config="$config">
+            <x-adminlte-datatable id="paymentsTable" :heads="$paymentHeads" head-theme="dark" striped hoverable bordered compressed :config="$config">
                 @foreach ($document->reglements as $reglement)
                     <tr>
                         <td>{{ $reglement->rg_date->format('Y-m-d') }}</td>
@@ -143,7 +143,7 @@
     {{-- Stock Movements --}}
     @if ($stockMovements->count() > 0)
         <x-adminlte-card theme="info" theme-mode="outline" title="Mouvements de stock" icon="fas fa-exchange-alt">
-            <x-adminlte-datatable id="stockMovementsTable" :heads="$stockHeads" head-theme="light" striped hoverable bordered compressed :config="$config">
+            <x-adminlte-datatable id="stockMovementsTable" :heads="$stockHeads" head-theme="dark" striped hoverable bordered compressed :config="$config">
                 @foreach ($stockMovements as $movement)
                     <tr>
                         <td>{{ $movement->article?->code_article ?: $movement->article?->ar_ref }} - {{ $movement->article?->ar_design }}</td>
@@ -164,3 +164,4 @@
         </x-adminlte-card>
     @endif
 @stop
+

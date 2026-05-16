@@ -24,7 +24,7 @@ class ReglementController extends Controller
         $this->middleware('auth');
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $dateFrom = $request->date('date_from');
         $dateTo = $request->date('date_to');
@@ -32,15 +32,41 @@ class ReglementController extends Controller
         $mode = $request->integer('mode') ?: null;
         $validated = $request->string('validated')->value();
 
-        $reglements = Reglement::with(['tier', 'document'])
+        $query = Reglement::with(['tier', 'document'])
             ->when($dateFrom, fn ($query) => $query->whereDate('rg_date', '>=', $dateFrom))
             ->when($dateTo, fn ($query) => $query->whereDate('rg_date', '<=', $dateTo))
             ->when($tierId, fn ($query) => $query->where('tier_id', $tierId))
             ->when($mode, fn ($query) => $query->where('rg_mode_reglement', $mode))
             ->when($validated !== null && $validated !== '', fn ($query) => $query->where('rg_valide', $validated === '1'))
             ->latest('rg_date')
-            ->latest('id')
-            ->get();
+            ->latest('id');
+
+        if ($request->ajax() && $request->has('draw')) {
+            $draw = (int) $request->input('draw', 1);
+            $start = max(0, (int) $request->input('start', 0));
+            $length = max(10, (int) $request->input('length', 10));
+            $recordsTotal = (clone $query)->count();
+            $recordsFiltered = $recordsTotal;
+            $rows = $query->skip($start)->take($length)->get();
+            $modes = $this->modes();
+
+            $data = $rows->map(function (Reglement $reglement) use ($modes) {
+                return [
+                    'date' => optional($reglement->rg_date)->format('Y-m-d'),
+                    'tiers' => e($reglement->tier?->code_tiers ?: $reglement->tier?->ct_num ?: '-'),
+                    'document' => e($reglement->document?->do_piece ?? '-'),
+                    'libelle' => e($reglement->rg_libelle ?: '-'),
+                    'mode' => e($modes[$reglement->rg_mode_reglement] ?? 'N/A'),
+                    'montant' => number_format((float) $reglement->rg_montant, 2),
+                    'valide' => '<span class="badge badge-'.($reglement->rg_valide ? 'success' : 'secondary').'">'.($reglement->rg_valide ? 'Oui' : 'Non').'</span>',
+                    'actions' => '<form action="'.route('reglements.destroy', $reglement).'" method="POST" data-ajax-delete="true" data-confirm="Supprimer ce reglement ?">'.csrf_field().method_field('DELETE').'<button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button></form>',
+                ];
+            })->all();
+
+            return response()->json(compact('draw', 'recordsTotal', 'recordsFiltered', 'data'));
+        }
+
+        $reglements = $query->get();
 
         return view('reglements.index', [
             'reglements' => $reglements,

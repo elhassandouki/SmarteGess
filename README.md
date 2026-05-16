@@ -39,6 +39,18 @@ Un correctif a ete ajoute dans [app/Http/Controllers/DocumentController.php](/c:
 
 ## Points d'attention
 
-- Le module `documents` est aujourd'hui generic: il gere les types de documents mais ne separe pas encore des routes/views distinctes pour `ventes` et `achats`.
+- Les routes ERP specialisees sont disponibles sous `/erp/*` (`ventes`, `achats`, `stock`, `payments`) et servent de navigation principale.
 - Le module `stock` permet l'ajustement manuel par depot, mais il n'existe pas encore de table dediee `mouvements_stock` ni de journal automatique des entrees/sorties depuis les documents.
 - `php artisan about --only=environment` remonte `Timezone: UTC`, alors que ton environnement de travail annonce `Africa/Casablanca`. Si tu veux un affichage date/heure local coherent, pense a verifier `APP_TIMEZONE`.
+
+## Controle d'acces (roles)
+
+Le projet applique des regles de role via des `Gate`:
+
+- `view-erp`: acces general ERP
+- `commercial-area`: documents ventes/achats
+- `accounting-area`: reglements/paiements
+- `stock-area`: stock et ajustements
+- `master-data-area`: articles, familles, depots, tiers, transporteurs
+
+Roles metier attendus dans `users.role`: `ADMIN`, `COMMERCIAL`, `COMPTABLE`, `MAGASINIER`, `USER`.
