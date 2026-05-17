@@ -303,10 +303,10 @@ return [
         ['type' => 'fullscreen-widget', 'topnav_right' => true],
         ['type' => 'sidebar-menu-search', 'text' => 'search'],
 
-        ['header' => 'Tableau De Bord'],
+        ['header' => 'Business'],
         ['text' => 'Dashboard', 'route' => 'home', 'icon' => 'fas fa-fw fa-tachometer-alt', 'can' => 'view-erp'],
 
-        ['header' => 'Structure'],
+        ['header' => 'Referentiels Metier'],
         ['text' => 'Familles d articles', 'route' => 'families.index', 'icon' => 'fas fa-fw fa-layer-group', 'can' => 'families.view'],
         ['text' => 'Articles', 'route' => 'articles.index', 'icon' => 'fas fa-fw fa-cube', 'can' => 'articles.view'],
         ['text' => 'Taxes et TVA', 'route' => 'taxes.index', 'icon' => 'fas fa-fw fa-percentage', 'can' => 'taxes.view'],
@@ -315,17 +315,7 @@ return [
         ['text' => 'Tous les tiers', 'route' => 'tiers.index', 'icon' => 'fas fa-fw fa-users', 'can' => 'tiers.view'],
         ['text' => 'Transporteurs', 'route' => 'transporteurs.index', 'icon' => 'fas fa-fw fa-truck', 'can' => 'transporteurs.view'],
         ['text' => 'Depots de stockage', 'route' => 'depots.index', 'icon' => 'fas fa-fw fa-warehouse', 'can' => 'depots.view'],
-        [
-            'text' => 'Roles et permissions',
-            'icon' => 'fas fa-fw fa-user-lock',
-            'can' => 'access.roles.view',
-            'submenu' => [
-                ['text' => 'Roles', 'route' => 'access.roles.index', 'icon' => 'fas fa-fw fa-user-shield'],
-                ['text' => 'Permissions', 'route' => 'access.permissions.index', 'icon' => 'fas fa-fw fa-key'],
-            ],
-        ],
-
-        ['header' => 'Traitement'],
+        ['header' => 'Operations'],
         [
             'text' => 'Documents des ventes',
             'icon' => 'fas fa-fw fa-cash-register',
@@ -364,22 +354,35 @@ return [
         ],
         ['text' => 'Recherche de documents', 'route' => 'documents.index', 'icon' => 'fas fa-fw fa-search', 'can' => 'documents.view'],
 
-        ['header' => 'Comptabilité'],
-        [
-            'text' => 'Plan comptable',
-            'icon' => 'fas fa-fw fa-book',
-            'can' => 'accounting.view',
-            'submenu' => [
-                ['text' => 'Comptes', 'route' => 'accounting.accounts.index', 'icon' => 'fas fa-fw fa-list'],
-                ['text' => 'Journal', 'route' => 'accounting.entries.index', 'icon' => 'fas fa-fw fa-file-alt'],
-            ],
-        ],
-
-        ['header' => 'Etat'],
+        ['header' => 'Analyse'],
         ['text' => 'Tableau de bord commercial', 'route' => 'home', 'icon' => 'fas fa-fw fa-chart-line', 'can' => 'view-erp'],
         ['text' => 'Interrogation clients', 'route' => 'erp.clients.index', 'icon' => 'fas fa-fw fa-address-book', 'can' => 'tiers.view'],
         ['text' => 'Interrogation fournisseurs', 'route' => 'erp.suppliers.index', 'icon' => 'fas fa-fw fa-truck-loading', 'can' => 'tiers.view'],
         ['text' => 'Mouvements de stock', 'route' => 'erp.stock.documents.index', 'icon' => 'fas fa-fw fa-box-open', 'can' => 'stocks.view'],
+
+        ['header' => 'Administration'],
+        [
+            'text' => 'Gestion des acces',
+            'icon' => 'fas fa-fw fa-user-lock',
+            'can' => 'admin.panel',
+            'submenu' => [
+                ['text' => 'Roles', 'route' => 'access.roles.index', 'icon' => 'fas fa-fw fa-user-shield'],
+                ['text' => 'Permissions', 'route' => 'access.permissions.index', 'icon' => 'fas fa-fw fa-key'],
+            ],
+        ],
+
+        ['header' => 'Interne / Support'],
+        ['text' => 'Console support', 'route' => 'support.dashboard', 'icon' => 'fas fa-fw fa-life-ring', 'can' => 'internal.support.view'],
+        ['text' => 'Audit technique', 'route' => 'support.audit-logs', 'icon' => 'fas fa-fw fa-clipboard-list', 'can' => 'internal.support.view'],
+        [
+            'text' => 'Comptabilite interne (lecture seule)',
+            'icon' => 'fas fa-fw fa-book',
+            'can' => 'internal.support.view',
+            'submenu' => [
+                ['text' => 'Plan des comptes', 'route' => 'accounting.accounts.index', 'icon' => 'fas fa-fw fa-list'],
+                ['text' => 'Journal des ecritures', 'route' => 'accounting.entries.index', 'icon' => 'fas fa-fw fa-file-alt'],
+            ],
+        ],
 
         ['header' => 'Session'],
         ['text' => 'Deconnexion', 'route' => 'logout', 'icon' => 'fas fa-fw fa-sign-out-alt', 'method' => 'post'],

@@ -34,6 +34,8 @@ class DatabaseSeeder extends Seeder
             'stocks.view', 'stocks.adjust',
             'reglements.view', 'reglements.create', 'reglements.delete',
             'accounting.view',
+            'admin.panel',
+            'internal.support.view', 'internal.support.update',
             'access.roles.view', 'access.roles.create', 'access.roles.update', 'access.roles.delete',
             'access.permissions.view', 'access.permissions.create', 'access.permissions.update', 'access.permissions.delete',
         ];
@@ -70,6 +72,11 @@ class DatabaseSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
+        $supportRole = Role::firstOrCreate([
+            'name' => 'support',
+            'guard_name' => 'web',
+        ]);
+
         $adminRole->syncPermissions(Permission::where('guard_name', 'web')->get());
         $commercialRole->syncPermissions([
             'view-erp',
@@ -100,6 +107,12 @@ class DatabaseSeeder extends Seeder
             'stocks.view', 'stocks.adjust',
         ]);
         $userRole->syncPermissions(['view-erp']);
+        $supportRole->syncPermissions([
+            'view-erp',
+            'internal.support.view',
+            'internal.support.update',
+            'accounting.view',
+        ]);
 
         $admin = User::firstOrCreate([
             'email' => 'admin@test.com',

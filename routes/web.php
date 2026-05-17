@@ -33,9 +33,9 @@ Auth::routes();
 Route::middleware('auth')->group(function () {
     Route::get('/onboarding', [OnboardingController::class, 'show'])->name('saas.onboarding.show');
     Route::post('/onboarding', [OnboardingController::class, 'store'])->name('saas.onboarding.store');
-    Route::get('/support', [SupportDashboardController::class, 'index'])->middleware('can:access.roles.view')->name('support.dashboard');
-    Route::patch('/support/tenants/{tenant}/toggle', [SupportDashboardController::class, 'toggleTenant'])->middleware('can:access.roles.update')->name('support.tenants.toggle');
-    Route::get('/support/audit-logs', [AuditLogController::class, 'index'])->middleware('can:access.roles.view')->name('support.audit-logs');
+    Route::get('/support', [SupportDashboardController::class, 'index'])->middleware('can:internal.support.view')->name('support.dashboard');
+    Route::patch('/support/tenants/{tenant}/toggle', [SupportDashboardController::class, 'toggleTenant'])->middleware('can:internal.support.update')->name('support.tenants.toggle');
+    Route::get('/support/audit-logs', [AuditLogController::class, 'index'])->middleware('can:internal.support.view')->name('support.audit-logs');
 
     Route::get('/home', [HomeController::class, 'index'])->middleware(['can:view-erp', 'tenant.active'])->name('home');
 
@@ -172,7 +172,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->middleware('can:documents.delete')->name('documents.destroy');
     });
 
-    Route::prefix('access')->name('access.')->middleware('can:access.roles.view')->group(function () {
+    Route::prefix('access')->name('access.')->middleware('can:admin.panel')->group(function () {
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         Route::get('/roles/create', [RoleController::class, 'create'])->middleware('can:access.roles.create')->name('roles.create');
         Route::post('/roles', [RoleController::class, 'store'])->middleware('can:access.roles.create')->name('roles.store');
@@ -181,7 +181,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->middleware('can:access.roles.delete')->name('roles.destroy');
     });
 
-    Route::prefix('access')->name('access.')->middleware('can:access.permissions.view')->group(function () {
+    Route::prefix('access')->name('access.')->middleware('can:admin.panel')->group(function () {
         Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
         Route::get('/permissions/create', [PermissionController::class, 'create'])->middleware('can:access.permissions.create')->name('permissions.create');
         Route::post('/permissions', [PermissionController::class, 'store'])->middleware('can:access.permissions.create')->name('permissions.store');
@@ -190,7 +190,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->middleware('can:access.permissions.delete')->name('permissions.destroy');
     });
 
-    Route::prefix('accounting')->name('accounting.')->middleware('can:accounting.view')->group(function () {
+    Route::prefix('accounting')->name('accounting.')->middleware('can:internal.support.view')->group(function () {
         Route::prefix('accounts')->name('accounts.')->group(function () {
             Route::get('/', [ChartOfAccountController::class, 'index'])->name('index');
             Route::get('/{account}', [ChartOfAccountController::class, 'show'])->name('show');
