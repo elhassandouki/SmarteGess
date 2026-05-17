@@ -134,18 +134,36 @@
         </x-adminlte-card>
 
         <x-adminlte-card theme="primary" theme-mode="outline" title="Lignes document" icon="fas fa-list">
+            <div class="mb-3 p-2 border rounded bg-light">
+                <div class="form-row align-items-end">
+                    <div class="col-md-7 position-relative">
+                        <label for="posProductInput" class="mb-1">Scan / Recherche produit</label>
+                        <input type="text" id="posProductInput" class="form-control form-control-sm" placeholder="Scanner code-barres ou taper nom/code..." autocomplete="off">
+                        <div id="posSearchResults" class="list-group position-absolute w-100 shadow-sm" style="z-index:1040; max-height:240px; overflow:auto; display:none;"></div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="posQtyInput" class="mb-1">Qte</label>
+                        <input type="number" id="posQtyInput" class="form-control form-control-sm" min="0.001" step="0.001" value="1">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" id="posAddFallbackBtn" class="btn btn-sm btn-outline-secondary btn-block">Ajouter via ligne manuelle</button>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">Mode POS: scanner puis Entrer. Le curseur reste sur ce champ pour un enchainement rapide.</small>
+            </div>
+
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover mb-0" id="linesTable">
                     <thead class="thead-light">
                         <tr>
-                            <th style="width: 32%;">Article</th>
+                            <th style="width: 30%;">Article</th>
                             <th style="width: 9%;">Qte</th>
                             <th style="width: 12%;">Prix HT</th>
                             <th style="width: 10%;">Remise %</th>
                             <th style="width: 8%;">TVA %</th>
                             <th style="width: 12%;">Montant HT</th>
                             <th style="width: 12%;">Montant TTC</th>
-                            <th style="width: 5%;"></th>
+                            <th style="width: 7%;"></th>
                         </tr>
                     </thead>
                     <tbody id="linesBody">
@@ -175,7 +193,7 @@
             </div>
             <div class="mt-3 d-flex justify-content-between align-items-center">
                 <button type="button" id="addLineBtn" class="btn btn-sm btn-outline-primary"><i class="fas fa-plus mr-1"></i> Ajouter une ligne</button>
-                <small class="text-muted">Utilisez une ligne par article, avec calcul HT/TTC automatique.</small>
+                <small class="text-muted">Ajout instantane et recalcul automatique HT/TVA/TTC.</small>
             </div>
         </x-adminlte-card>
     </div>
@@ -203,9 +221,15 @@
         const articleMap = @json($articleMap);
         const linesBody = document.getElementById('linesBody');
         const addLineBtn = document.getElementById('addLineBtn');
+        const posProductInput = document.getElementById('posProductInput');
+        const posQtyInput = document.getElementById('posQtyInput');
+        const posSearchResults = document.getElementById('posSearchResults');
+        const posAddFallbackBtn = document.getElementById('posAddFallbackBtn');
         const sumHt = document.getElementById('sumHt');
         const sumTva = document.getElementById('sumTva');
         const sumTtc = document.getElementById('sumTtc');
+        let searchAbort = null;
+        let searchItems = [];
 
         function money(v) {
             return Number(v || 0).toFixed(2);
@@ -288,6 +312,86 @@
             `;
             linesBody.appendChild(row);
             computeAll();
+            return row;
+        }
+
+        function ensureArticleOption(select, article) {
+            const id = String(article.id);
+            if ([...select.options].some((o) => o.value === id)) {
+                return;
+            }
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = article.label || `${article.code} - ${article.name}`;
+            select.appendChild(option);
+        }
+
+        function addOrIncrementLine(article, qtyToAdd) {
+            const qty = Math.max(0.001, Number(qtyToAdd || 1));
+            const existing = [...linesBody.querySelectorAll('tr.line-row')].find((row) => row.querySelector('.line-article').value === String(article.id));
+
+            if (existing) {
+                const qtyInput = existing.querySelector('.line-qty');
+                qtyInput.value = Number(qtyInput.value || 0) + qty;
+                computeAll();
+                return;
+            }
+
+            const row = addRow();
+            const select = row.querySelector('.line-article');
+            ensureArticleOption(select, article);
+            select.value = String(article.id);
+            row.querySelector('.line-qty').value = qty;
+            row.querySelector('.line-price').value = Number(article.price || article.buy_price || 0);
+            computeAll();
+        }
+
+        function hideResults() {
+            posSearchResults.style.display = 'none';
+            posSearchResults.innerHTML = '';
+            searchItems = [];
+        }
+
+        function renderResults(items) {
+            searchItems = items;
+            posSearchResults.innerHTML = '';
+            if (!items.length) {
+                hideResults();
+                return;
+            }
+
+            items.forEach((item, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'list-group-item list-group-item-action py-2';
+                btn.dataset.index = String(idx);
+                btn.innerHTML = `<strong>${item.code}</strong> - ${item.name}<span class="float-right text-muted">${money(item.price)} DH</span>`;
+                posSearchResults.appendChild(btn);
+            });
+
+            posSearchResults.style.display = 'block';
+        }
+
+        async function apiSearch(q) {
+            if (searchAbort) {
+                searchAbort.abort();
+            }
+            searchAbort = new AbortController();
+            const resp = await fetch(`/api/articles/search?q=${encodeURIComponent(q)}`, { signal: searchAbort.signal, headers: { 'Accept': 'application/json' } });
+            if (!resp.ok) return [];
+            const payload = await resp.json();
+            return payload.data || [];
+        }
+
+        async function apiBarcode(code) {
+            const resp = await fetch(`/api/articles/barcode/${encodeURIComponent(code)}`, { headers: { 'Accept': 'application/json' } });
+            if (!resp.ok) return null;
+            const payload = await resp.json();
+            return payload.data || null;
+        }
+
+        function keepScannerFocus() {
+            setTimeout(() => posProductInput.focus(), 20);
         }
 
         linesBody.addEventListener('input', computeAll);
@@ -308,8 +412,69 @@
         });
 
         addLineBtn.addEventListener('click', addRow);
+        posAddFallbackBtn.addEventListener('click', () => {
+            addRow();
+            keepScannerFocus();
+        });
+
+        posProductInput.addEventListener('input', async () => {
+            const q = posProductInput.value.trim();
+            if (q.length < 2) {
+                hideResults();
+                return;
+            }
+
+            try {
+                const items = await apiSearch(q);
+                renderResults(items);
+            } catch (_) {
+                hideResults();
+            }
+        });
+
+        posSearchResults.addEventListener('click', (event) => {
+            const btn = event.target.closest('[data-index]');
+            if (!btn) return;
+            const item = searchItems[Number(btn.dataset.index)];
+            if (!item) return;
+            addOrIncrementLine(item, posQtyInput.value);
+            posProductInput.value = '';
+            hideResults();
+            keepScannerFocus();
+        });
+
+        posProductInput.addEventListener('keydown', async (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+
+            const raw = posProductInput.value.trim();
+            if (!raw) return;
+
+            let item = await apiBarcode(raw);
+            if (!item) {
+                const items = await apiSearch(raw);
+                item = items[0] || null;
+            }
+
+            if (item) {
+                addOrIncrementLine(item, posQtyInput.value);
+                posProductInput.value = '';
+                hideResults();
+            }
+
+            keepScannerFocus();
+        });
+
+        posProductInput.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (document.activeElement !== posProductInput) {
+                    posProductInput.focus();
+                }
+            }, 120);
+        });
 
         computeAll();
+        keepScannerFocus();
     })();
 </script>
 @endpush

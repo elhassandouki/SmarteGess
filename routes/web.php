@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\Api\ArticleLookupController;
 use App\Http\Controllers\Access\PermissionController;
 use App\Http\Controllers\Access\RoleController;
 use App\Http\Controllers\ChartOfAccountController;
@@ -31,6 +32,11 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::middleware('auth')->group(function () {
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/articles/search', [ArticleLookupController::class, 'search'])->name('articles.search');
+        Route::get('/articles/barcode/{code}', [ArticleLookupController::class, 'barcode'])->name('articles.barcode');
+    });
+
     Route::get('/onboarding', [OnboardingController::class, 'show'])->name('saas.onboarding.show');
     Route::post('/onboarding', [OnboardingController::class, 'store'])->name('saas.onboarding.store');
     Route::get('/support', [SupportDashboardController::class, 'index'])->middleware('can:internal.support.view')->name('support.dashboard');
