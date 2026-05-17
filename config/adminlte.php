@@ -309,6 +309,7 @@ return [
         ['header' => 'Structure'],
         ['text' => 'Familles d articles', 'route' => 'families.index', 'icon' => 'fas fa-fw fa-layer-group', 'can' => 'families.view'],
         ['text' => 'Articles', 'route' => 'articles.index', 'icon' => 'fas fa-fw fa-cube', 'can' => 'articles.view'],
+        ['text' => 'Taxes et TVA', 'route' => 'taxes.index', 'icon' => 'fas fa-fw fa-percentage', 'can' => 'taxes.view'],
         ['text' => 'Clients', 'route' => 'erp.clients.index', 'icon' => 'fas fa-fw fa-user-tie', 'can' => 'tiers.view'],
         ['text' => 'Fournisseurs', 'route' => 'erp.suppliers.index', 'icon' => 'fas fa-fw fa-truck-loading', 'can' => 'tiers.view'],
         ['text' => 'Tous les tiers', 'route' => 'tiers.index', 'icon' => 'fas fa-fw fa-users', 'can' => 'tiers.view'],
@@ -362,6 +363,17 @@ return [
             ],
         ],
         ['text' => 'Recherche de documents', 'route' => 'documents.index', 'icon' => 'fas fa-fw fa-search', 'can' => 'documents.view'],
+
+        ['header' => 'Comptabilité'],
+        [
+            'text' => 'Plan comptable',
+            'icon' => 'fas fa-fw fa-book',
+            'can' => 'accounting.view',
+            'submenu' => [
+                ['text' => 'Comptes', 'route' => 'accounting.accounts.index', 'icon' => 'fas fa-fw fa-list'],
+                ['text' => 'Journal', 'route' => 'accounting.entries.index', 'icon' => 'fas fa-fw fa-file-alt'],
+            ],
+        ],
 
         ['header' => 'Etat'],
         ['text' => 'Tableau de bord commercial', 'route' => 'home', 'icon' => 'fas fa-fw fa-chart-line', 'can' => 'view-erp'],

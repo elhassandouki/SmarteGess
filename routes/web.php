@@ -3,16 +3,19 @@
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\Access\PermissionController;
 use App\Http\Controllers\Access\RoleController;
+use App\Http\Controllers\ChartOfAccountController;
 use App\Http\Controllers\CompteTController;
 use App\Http\Controllers\DepotController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FamilyController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\ReglementController;
 use App\Http\Controllers\PurchaseDocumentController;
 use App\Http\Controllers\SalesDocumentController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockDocumentController;
+use App\Http\Controllers\TaxController;
 use App\Http\Controllers\TransporteurController;
 use App\Http\Controllers\SaaS\OnboardingController;
 use App\Http\Controllers\SaaS\SupportDashboardController;
@@ -104,6 +107,17 @@ Route::middleware('auth')->group(function () {
         Route::delete('/depots/{depot}', [DepotController::class, 'destroy'])->middleware('can:depots.delete')->name('depots.destroy');
     });
 
+    Route::middleware('can:taxes.view')->group(function () {
+        Route::get('/taxes', [TaxController::class, 'index'])->name('taxes.index');
+        Route::get('/taxes/create', [TaxController::class, 'create'])->middleware('can:taxes.create')->name('taxes.create');
+        Route::post('/taxes', [TaxController::class, 'store'])->middleware('can:taxes.create')->name('taxes.store');
+        Route::get('/taxes/{tax}', [TaxController::class, 'show'])->name('taxes.show');
+        Route::get('/taxes/{tax}/edit', [TaxController::class, 'edit'])->middleware('can:taxes.update')->name('taxes.edit');
+        Route::put('/taxes/{tax}', [TaxController::class, 'update'])->middleware('can:taxes.update')->name('taxes.update');
+        Route::patch('/taxes/{tax}', [TaxController::class, 'update'])->middleware('can:taxes.update');
+        Route::delete('/taxes/{tax}', [TaxController::class, 'destroy'])->middleware('can:taxes.delete')->name('taxes.destroy');
+    });
+
     Route::middleware('can:tiers.view')->group(function () {
         Route::get('/tiers/create', [CompteTController::class, 'create'])->middleware('can:tiers.create')->name('tiers.create');
         Route::post('/tiers', [CompteTController::class, 'store'])->middleware('can:tiers.create')->name('tiers.store');
@@ -174,5 +188,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/permissions/{permission}/edit', [PermissionController::class, 'edit'])->middleware('can:access.permissions.update')->name('permissions.edit');
         Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->middleware('can:access.permissions.update')->name('permissions.update');
         Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->middleware('can:access.permissions.delete')->name('permissions.destroy');
+    });
+
+    Route::prefix('accounting')->name('accounting.')->middleware('can:accounting.view')->group(function () {
+        Route::prefix('accounts')->name('accounts.')->group(function () {
+            Route::get('/', [ChartOfAccountController::class, 'index'])->name('index');
+            Route::get('/{account}', [ChartOfAccountController::class, 'show'])->name('show');
+        });
+        Route::prefix('entries')->name('entries.')->group(function () {
+            Route::get('/', [JournalEntryController::class, 'index'])->name('index');
+            Route::get('/{entry}', [JournalEntryController::class, 'show'])->name('show');
+        });
     });
 });
