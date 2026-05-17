@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,10 +10,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class StockMovement extends Model
 {
     use HasFactory;
+    use BelongsToTenant;
 
     protected $table = 'stock_movements';
 
     protected $fillable = [
+        'tenant_id',
         'article_id',
         'depot_id',
         'movement_type',
@@ -49,5 +52,16 @@ class StockMovement extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(function (): void {
+            throw new \LogicException('Stock ledger entries are immutable and cannot be updated.');
+        });
+
+        static::deleting(function (): void {
+            throw new \LogicException('Stock ledger entries are immutable and cannot be deleted.');
+        });
     }
 }

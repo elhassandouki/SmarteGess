@@ -4,24 +4,44 @@ namespace App\Services\ERP;
 
 use App\Models\Document;
 use App\Models\Reglement;
+use App\Services\Observability\AuditLogService;
+use App\Support\Tenancy\TenantResolver;
 use Illuminate\Support\Facades\DB;
 
 class AccountingPostingService
 {
+    public function __construct(
+        private readonly TenantResolver $tenantResolver,
+        private readonly AuditLogService $auditLogService
+    ) {
+    }
+
     public function clearDocumentPosting(int $documentId): void
     {
-        DB::table('journal_entries')
+        $deleted = DB::table('journal_entries')
             ->where('reference_type', 'document')
             ->where('reference_id', $documentId)
             ->delete();
+
+        if ($deleted > 0) {
+            $this->auditLogService->log('accounting.document.reversed', 'document', $documentId, [
+                'deleted_entries' => $deleted,
+            ]);
+        }
     }
 
     public function clearPaymentPosting(int $paymentId): void
     {
-        DB::table('journal_entries')
+        $deleted = DB::table('journal_entries')
             ->where('reference_type', 'payment')
             ->where('reference_id', $paymentId)
             ->delete();
+
+        if ($deleted > 0) {
+            $this->auditLogService->log('accounting.payment.reversed', 'payment', $paymentId, [
+                'deleted_entries' => $deleted,
+            ]);
+        }
     }
 
     public function syncDocumentPosting(Document $document): void
@@ -36,6 +56,7 @@ class AccountingPostingService
 
         $isSalesInvoice = $code === 'FA';
         $entryId = DB::table('journal_entries')->insertGetId([
+            'tenant_id' => $this->tenantResolver->tenantId(),
             'entry_date' => $document->do_date,
             'journal_code' => $isSalesInvoice ? 'SALES' : 'PURCHASE',
             'reference_type' => 'document',
@@ -62,6 +83,12 @@ class AccountingPostingService
             $this->insertLine($entryId, '445660', 'TVA deduct.', (float) $document->do_total_tva, 0);
         }
         $this->insertLine($entryId, '401000', 'Fournisseur', 0, (float) $document->do_total_ttc);
+
+        $this->auditLogService->log('accounting.document.posted', 'document', $document->id, [
+            'entry_id' => $entryId,
+            'type_document_code' => $document->type_document_code,
+            'total_ttc' => (float) $document->do_total_ttc,
+        ]);
     }
 
     public function syncPaymentPosting(Reglement $reglement): void
@@ -76,6 +103,7 @@ class AccountingPostingService
         $isCustomerPayment = $docType === 'FA';
 
         $entryId = DB::table('journal_entries')->insertGetId([
+            'tenant_id' => $this->tenantResolver->tenantId(),
             'entry_date' => $reglement->rg_date,
             'journal_code' => 'BANK',
             'reference_type' => 'payment',
@@ -95,6 +123,11 @@ class AccountingPostingService
 
         $this->insertLine($entryId, '401000', 'Fournisseur', (float) $reglement->rg_montant, 0);
         $this->insertLine($entryId, '512000', 'Banque/Caisse', 0, (float) $reglement->rg_montant);
+
+        $this->auditLogService->log('accounting.payment.posted', 'payment', $reglement->id, [
+            'entry_id' => $entryId,
+            'amount' => (float) $reglement->rg_montant,
+        ]);
     }
 
     private function insertLine(int $entryId, string $accountCode, string $accountLabel, float $debit, float $credit): void

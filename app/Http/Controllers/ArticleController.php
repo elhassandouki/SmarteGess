@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\Family;
+use App\Services\PdfRendererService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -14,8 +15,9 @@ use Illuminate\View\View;
 
 class ArticleController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private readonly PdfRendererService $pdfRendererService
+    ) {
         $this->middleware('auth');
     }
 
@@ -140,12 +142,11 @@ class ArticleController extends Controller
         $data = $this->buildArticleInsights($article);
         $data['generatedAt'] = now();
 
-        if (!class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
-            throw new \RuntimeException('PDF engine not installed. Install barryvdh/laravel-dompdf in all environments.');
-        }
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('articles.export-pdf', $data);
-        return $pdf->download('article-'.$article->id.'-report.pdf');
+        return $this->pdfRendererService->download(
+            'articles.export-pdf',
+            $data,
+            'article-'.$article->id.'-report.pdf'
+        );
     }
 
     protected function buildArticleInsights(Article $article): array

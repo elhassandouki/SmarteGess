@@ -11,6 +11,7 @@ use App\Models\Family;
 use App\Models\Transporteur;
 use Carbon\Carbon;
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
@@ -30,8 +31,12 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function index(): Renderable
+    public function index(): Renderable|RedirectResponse
     {
+        if (!auth()->user()?->tenant_id) {
+            return redirect()->route('saas.onboarding.show');
+        }
+
         $from = now()->startOfMonth()->subMonths(5);
         $to = now()->endOfMonth();
 

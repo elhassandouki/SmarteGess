@@ -1,0 +1,64 @@
+version: '3.9'
+services:
+  app:
+    build: .
+    container_name: smartegess-app
+    env_file: .env
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+      - redis
+
+  nginx:
+    image: nginx:alpine
+    container_name: smartegess-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: smartegess-db
+    environment:
+      MYSQL_DATABASE: smartegess
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: smartegess
+      MYSQL_PASSWORD: smartegess
+    ports:
+      - "3307:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartegess-redis
+    ports:
+      - "6379:6379"
+
+  queue:
+    build: .
+    command: php artisan queue:work --sleep=1 --tries=3 --timeout=120
+    env_file: .env
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - app
+      - db
+      - redis
+
+  scheduler:
+    build: .
+    command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    env_file: .env
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - app
+
+volumes:
+  dbdata:

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -125,5 +126,14 @@ class DatabaseSeeder extends Seeder
             ['code_depot' => 'DEP01'],
             ['intitule' => 'DEPOT PRINCIPAL', 'updated_at' => now(), 'created_at' => now()]
         );
+
+        $tenant = Tenant::firstOrCreate(
+            ['slug' => 'demo'],
+            ['name' => 'Demo Company', 'is_active' => true]
+        );
+
+        $admin->update(['tenant_id' => $tenant->id]);
+
+        $this->call(SubscriptionPlanSeeder::class);
     }
 }

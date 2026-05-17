@@ -8,7 +8,7 @@ use App\Support\DocumentTypeRegistry;
 
 class DocumentWorkflowService
 {
-    public function buildHeaderData(array $data): array
+    public function buildHeaderData(array $data, string $lifecycleStatus = 'draft'): array
     {
         $definition = DocumentTypeRegistry::definitions()[$data['type_document_code']] ?? null;
         $taxRates = $this->articleTaxRates(collect($data['lines'])->pluck('article_id')->all());
@@ -39,7 +39,7 @@ class DocumentWorkflowService
             },
             'doc_module' => $definition['module'] ?? DocumentTypeRegistry::MODULE_SALES,
             'workflow_type' => $definition['flow'] ?? 'order',
-            'lifecycle_status' => 'draft',
+            'lifecycle_status' => $lifecycleStatus,
             'transporteur_id' => $data['transporteur_id'] ?? null,
             'do_lieu_livraison' => $data['do_lieu_livraison'] ?? null,
             'do_date_livraison' => $data['do_date_livraison'] ?? null,

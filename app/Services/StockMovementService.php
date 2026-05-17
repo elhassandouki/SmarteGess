@@ -8,11 +8,17 @@ use App\Models\DocumentLine;
 use App\Models\Depot;
 use App\Models\Stock;
 use App\Models\StockMovement;
+use App\Services\Observability\AuditLogService;
 use App\Support\DocumentTypeRegistry;
 use Illuminate\Support\Facades\DB;
 
 class StockMovementService
 {
+    public function __construct(
+        private readonly AuditLogService $auditLogService
+    ) {
+    }
+
     /**
      * Process stock movements when a document is created or modified
      *
@@ -75,16 +81,26 @@ class StockMovementService
         $quantity = (float) $line->dl_qte * $direction;
 
         // Update or create stock record
-        $stock = Stock::firstOrCreate(
-            [
+        $stock = Stock::query()
+            ->where('article_id', $line->article_id)
+            ->where('depot_id', $depot->id)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$stock) {
+            Stock::create([
                 'article_id' => $line->article_id,
                 'depot_id' => $depot->id,
-            ],
-            [
                 'stock_reel' => 0,
                 'stock_reserve' => 0,
-            ]
-        );
+            ]);
+
+            $stock = Stock::query()
+                ->where('article_id', $line->article_id)
+                ->where('depot_id', $depot->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+        }
 
         // Update stock
         $newStock = (float) $stock->stock_reel + $quantity;
@@ -108,6 +124,13 @@ class StockMovementService
             'user_id' => auth()->id(),
             'notes' => "Document {$document->type_document_code} {$document->do_piece}",
         ]);
+
+        $this->auditLogService->log('stock.movement.applied', 'document', $document->id, [
+            'article_id' => $line->article_id,
+            'depot_id' => $depot->id,
+            'movement' => $movementType,
+            'quantity' => abs($quantity),
+        ]);
     }
 
     /**
@@ -123,10 +146,11 @@ class StockMovementService
         $quantity = (float) $oldLine['dl_qte'] * $direction * -1; // Reverse direction
 
         // Update stock
-        $stock = Stock::where([
-            'article_id' => $oldLine['article_id'],
-            'depot_id' => $depot->id,
-        ])->first();
+        $stock = Stock::query()
+            ->where('article_id', $oldLine['article_id'])
+            ->where('depot_id', $depot->id)
+            ->lockForUpdate()
+            ->first();
 
         if ($stock) {
             $newStock = (float) $stock->stock_reel + $quantity;
@@ -150,6 +174,13 @@ class StockMovementService
             'source_id' => $document->id,
             'user_id' => auth()->id(),
             'notes' => "Reversal: Document {$document->type_document_code} {$document->do_piece}",
+        ]);
+
+        $this->auditLogService->log('stock.movement.reversed', 'document', $document->id, [
+            'article_id' => $oldLine['article_id'],
+            'depot_id' => $depot->id,
+            'movement' => $movementType,
+            'quantity' => abs($quantity),
         ]);
     }
 
@@ -175,10 +206,11 @@ class StockMovementService
                 $quantity = (float) $line->dl_qte * $direction * -1; // Reverse
 
                 // Update stock
-                $stock = Stock::where([
-                    'article_id' => $line->article_id,
-                    'depot_id' => $depot->id,
-                ])->first();
+                $stock = Stock::query()
+                    ->where('article_id', $line->article_id)
+                    ->where('depot_id', $depot->id)
+                    ->lockForUpdate()
+                    ->first();
 
                 if ($stock) {
                     $newStock = (float) $stock->stock_reel + $quantity;
@@ -202,6 +234,13 @@ class StockMovementService
                     'source_id' => $document->id,
                     'user_id' => auth()->id(),
                     'notes' => "Document deleted: {$document->type_document_code} {$document->do_piece}",
+                ]);
+
+                $this->auditLogService->log('stock.movement.cancelled', 'document', $document->id, [
+                    'article_id' => $line->article_id,
+                    'depot_id' => $depot->id,
+                    'movement' => $movementType,
+                    'quantity' => abs($quantity),
                 ]);
             }
         });
@@ -232,6 +271,13 @@ class StockMovementService
                 'source_id' => $stock->id,
                 'user_id' => auth()->id(),
                 'notes' => $reason ?: 'Manual stock adjustment',
+            ]);
+
+            $this->auditLogService->log('stock.adjusted', 'stock', $stock->id, [
+                'old_quantity' => $oldQuantity,
+                'new_quantity' => $newQuantity,
+                'delta' => $difference,
+                'reason' => $reason,
             ]);
         });
     }

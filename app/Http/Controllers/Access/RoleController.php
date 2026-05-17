@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Access;
 
 use App\Http\Controllers\Controller;
+use App\Services\Observability\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -12,6 +13,11 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
+    public function __construct(
+        private readonly AuditLogService $auditLogService
+    ) {
+    }
+
     public function index(): View
     {
         $roles = Role::withCount('permissions')->orderBy('name')->get();
@@ -40,6 +46,10 @@ class RoleController extends Controller
         ]);
 
         $role->syncPermissions($data['permissions'] ?? []);
+        $this->auditLogService->log('access.role.created', 'role', $role->id, [
+            'name' => $role->name,
+            'permissions' => $data['permissions'] ?? [],
+        ]);
 
         return redirect()->route('access.roles.index')->with('success', 'Role cree avec succes.');
     }
@@ -62,6 +72,10 @@ class RoleController extends Controller
 
         $role->update(['name' => $data['name']]);
         $role->syncPermissions($data['permissions'] ?? []);
+        $this->auditLogService->log('access.role.updated', 'role', $role->id, [
+            'name' => $role->name,
+            'permissions' => $data['permissions'] ?? [],
+        ]);
 
         return redirect()->route('access.roles.index')->with('success', 'Role mis a jour avec succes.');
     }
@@ -73,8 +87,10 @@ class RoleController extends Controller
         }
 
         $role->delete();
+        $this->auditLogService->log('access.role.deleted', 'role', $role->id, [
+            'name' => $role->name,
+        ]);
 
         return redirect()->route('access.roles.index')->with('success', 'Role supprime avec succes.');
     }
 }
-

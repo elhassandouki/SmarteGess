@@ -675,3 +675,37 @@ Artisan::command('app:import-gcom {--source=tajhiadk_gestion}', function () {
         ]
     );
 })->purpose('Import business data from bd_gcom into the current application schema');
+
+Artisan::command('outbox:process {--limit=200}', function () {
+    $limit = (int) $this->option('limit');
+
+    DB::transaction(function () use ($limit): void {
+        $events = \App\Models\OutboxEvent::query()
+            ->where('status', 'pending')
+            ->where(function ($q) {
+                $q->whereNull('available_at')->orWhere('available_at', '<=', now());
+            })
+            ->lockForUpdate()
+            ->limit($limit)
+            ->get();
+
+        foreach ($events as $event) {
+            try {
+                $event->update([
+                    'status' => 'processed',
+                    'processed_at' => now(),
+                    'error_message' => null,
+                ]);
+            } catch (\Throwable $e) {
+                $event->update([
+                    'status' => 'failed',
+                    'error_message' => $e->getMessage(),
+                ]);
+            }
+        }
+    });
+
+    $this->components->info('Outbox processing completed.');
+})->purpose('Process pending outbox events safely');
+
+\Illuminate\Support\Facades\Schedule::command('outbox:process --limit=200')->everyMinute();

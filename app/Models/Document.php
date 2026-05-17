@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use App\Support\DocumentTypeRegistry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,10 +13,12 @@ use Illuminate\Database\Eloquent\Builder;
 class Document extends Model
 {
     use HasFactory;
+    use BelongsToTenant;
 
     protected $table = 'f_docentete';
 
     protected $fillable = [
+        'tenant_id',
         'do_piece',
         'do_date',
         'tier_id',

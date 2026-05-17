@@ -8,40 +8,38 @@ use App\Models\Article;
 use App\Models\CompteT;
 use App\Models\Depot;
 use App\Models\Document;
-use App\Models\DocumentLine;
 use App\Models\Transporteur;
-use App\Services\ERP\DocumentWorkflowService;
-use App\Services\ERP\AccountingPostingService;
-use App\Services\ERP\DocumentLifecycleService;
-use App\Services\StockMovementService;
+use App\Modules\Sales\Application\Actions\CancelDocumentAction;
+use App\Modules\Sales\Application\Actions\PostDocumentAction;
+use App\Modules\Sales\Application\Actions\ValidateDocumentAction;
+use App\Services\ERP\DocumentManagementService;
 use App\Support\DocumentTypeRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class DocumentController extends Controller
 {
-    protected StockMovementService $stockMovementService;
-    protected DocumentWorkflowService $documentWorkflowService;
-    protected AccountingPostingService $accountingPostingService;
-    protected DocumentLifecycleService $documentLifecycleService;
+    protected DocumentManagementService $documentManagementService;
+    protected ValidateDocumentAction $validateDocumentAction;
+    protected PostDocumentAction $postDocumentAction;
+    protected CancelDocumentAction $cancelDocumentAction;
 
     public function __construct(
-        StockMovementService $stockMovementService,
-        DocumentWorkflowService $documentWorkflowService,
-        AccountingPostingService $accountingPostingService,
-        DocumentLifecycleService $documentLifecycleService
+        DocumentManagementService $documentManagementService,
+        ValidateDocumentAction $validateDocumentAction,
+        PostDocumentAction $postDocumentAction,
+        CancelDocumentAction $cancelDocumentAction
     )
     {
         $this->middleware('auth');
-        $this->stockMovementService = $stockMovementService;
-        $this->documentWorkflowService = $documentWorkflowService;
-        $this->accountingPostingService = $accountingPostingService;
-        $this->documentLifecycleService = $documentLifecycleService;
+        $this->documentManagementService = $documentManagementService;
+        $this->validateDocumentAction = $validateDocumentAction;
+        $this->postDocumentAction = $postDocumentAction;
+        $this->cancelDocumentAction = $cancelDocumentAction;
     }
 
     public function index(Request $request): View|JsonResponse
@@ -200,10 +198,7 @@ class DocumentController extends Controller
         $this->normalizeTypeCode($request);
         $data = $this->validateDocument($request);
 
-        DB::transaction(function () use ($data) {
-            $document = Document::create($this->documentWorkflowService->buildHeaderData($data));
-            $this->documentWorkflowService->syncLines($document, $data['lines']);
-        });
+        $this->documentManagementService->create($data);
 
         return redirect()->route('documents.index')->with('success', 'Document cree avec succes.');
     }
@@ -247,15 +242,7 @@ class DocumentController extends Controller
         $this->normalizeTypeCode($request);
         $data = $this->validateDocument($request, $document->id);
 
-        DB::transaction(function () use ($document, $data) {
-            if ($document->lifecycle_status === 'posted') {
-                throw new \RuntimeException('Posted documents cannot be edited directly. Cancel first.');
-            }
-            // Get old lines before deletion for stock reversal
-            $document->update($this->documentWorkflowService->buildHeaderData($data));
-            $document->lines()->delete();
-            $this->documentWorkflowService->syncLines($document, $data['lines']);
-        });
+        $this->documentManagementService->update($document, $data);
 
         return redirect()->route('documents.index')->with('success', 'Document mis a jour avec succes.');
     }
@@ -264,7 +251,7 @@ class DocumentController extends Controller
     {
         DB::transaction(function () use ($document) {
             if ($document->lifecycle_status === 'posted') {
-                $this->documentLifecycleService->cancel($document);
+                $this->cancelDocumentAction->execute($document);
             }
             $document->lines()->delete();
             $document->delete();
@@ -281,41 +268,7 @@ class DocumentController extends Controller
 
     public function duplicate(Document $document): RedirectResponse
     {
-        $document->load('lines');
-
-        $newDocument = DB::transaction(function () use ($document) {
-            $copy = Document::create([
-                'do_piece' => $this->generateDuplicatePiece($document->do_piece),
-                'do_date' => now()->toDateString(),
-                'tier_id' => $document->tier_id,
-                'do_type' => $document->do_type,
-                'type_document_code' => $document->type_document_code,
-                'depot_id' => $document->depot_id,
-                'transporteur_id' => $document->transporteur_id,
-                'do_lieu_livraison' => $document->do_lieu_livraison,
-                'do_date_livraison' => $document->do_date_livraison,
-                'do_expedition_statut' => 'en_attente',
-                'do_total_ht' => $document->do_total_ht,
-                'do_total_tva' => $document->do_total_tva,
-                'do_total_ttc' => $document->do_total_ttc,
-                'do_montant_regle' => 0,
-                'do_statut' => 0,
-            ]);
-
-            $document->lines->each(function (DocumentLine $line) use ($copy) {
-                $copy->lines()->create([
-                    'article_id' => $line->article_id,
-                    'dl_qte' => $line->dl_qte,
-                    'dl_prix_unitaire_ht' => $line->dl_prix_unitaire_ht,
-                    'dl_prix_revient' => $line->dl_prix_revient,
-                    'dl_remise_percent' => $line->dl_remise_percent,
-                    'dl_montant_ht' => $line->dl_montant_ht,
-                    'dl_montant_ttc' => $line->dl_montant_ttc,
-                ]);
-            });
-
-            return $copy;
-        });
+        $newDocument = $this->documentManagementService->duplicate($document);
 
         return redirect()
             ->route('documents.edit', $newDocument)
@@ -345,21 +298,21 @@ class DocumentController extends Controller
 
     public function validateLifecycle(Document $document): RedirectResponse
     {
-        $this->documentLifecycleService->validate($document);
+        $this->validateDocumentAction->execute($document);
 
         return redirect()->route('documents.show', $document)->with('success', 'Document valide.');
     }
 
     public function postLifecycle(Document $document): RedirectResponse
     {
-        $this->documentLifecycleService->post($document);
+        $this->postDocumentAction->execute($document);
 
         return redirect()->route('documents.show', $document)->with('success', 'Document poste.');
     }
 
     public function cancelLifecycle(Document $document): RedirectResponse
     {
-        $this->documentLifecycleService->cancel($document);
+        $this->cancelDocumentAction->execute($document);
 
         return redirect()->route('documents.show', $document)->with('success', 'Document annule.');
     }
@@ -429,7 +382,7 @@ class DocumentController extends Controller
             : $types;
 
         return $request->validate([
-            'do_piece' => ['required', 'string', 'max:100', Rule::unique('f_docentete', 'do_piece')->ignore($documentId)],
+            'do_piece' => ['nullable', 'string', 'max:100', Rule::unique('f_docentete', 'do_piece')->ignore($documentId)],
             'do_date' => ['required', 'date'],
             'tier_id' => ['nullable', 'exists:f_comptet,id'],
             'depot_id' => ['nullable', 'exists:f_depots,id'],
@@ -449,20 +402,6 @@ class DocumentController extends Controller
             'lines.*.dl_prix_unitaire_ht' => ['required', 'numeric', 'min:0'],
             'lines.*.dl_remise_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
-    }
-
-    protected function generateDuplicatePiece(string $piece): string
-    {
-        $basePiece = Str::limit($piece, 80, '');
-        $candidate = $basePiece.'-COPIE';
-        $suffix = 2;
-
-        while (Document::where('do_piece', $candidate)->exists()) {
-            $candidate = $basePiece.'-COPIE-'.$suffix;
-            $suffix++;
-        }
-
-        return $candidate;
     }
 
     protected function paymentStatuses(): array

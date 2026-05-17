@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Access;
 
 use App\Http\Controllers\Controller;
+use App\Services\Observability\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -11,6 +12,11 @@ use Spatie\Permission\Models\Permission;
 
 class PermissionController extends Controller
 {
+    public function __construct(
+        private readonly AuditLogService $auditLogService
+    ) {
+    }
+
     public function index(): View
     {
         $permissions = Permission::orderBy('name')->get();
@@ -29,9 +35,12 @@ class PermissionController extends Controller
             'name' => ['required', 'string', 'max:150', Rule::unique('permissions', 'name')],
         ]);
 
-        Permission::create([
+        $permission = Permission::create([
             'name' => $data['name'],
             'guard_name' => 'web',
+        ]);
+        $this->auditLogService->log('access.permission.created', 'permission', $permission->id, [
+            'name' => $permission->name,
         ]);
 
         return redirect()->route('access.permissions.index')->with('success', 'Permission creee avec succes.');
@@ -49,6 +58,9 @@ class PermissionController extends Controller
         ]);
 
         $permission->update(['name' => $data['name']]);
+        $this->auditLogService->log('access.permission.updated', 'permission', $permission->id, [
+            'name' => $permission->name,
+        ]);
 
         return redirect()->route('access.permissions.index')->with('success', 'Permission mise a jour avec succes.');
     }
@@ -56,8 +68,10 @@ class PermissionController extends Controller
     public function destroy(Permission $permission): RedirectResponse
     {
         $permission->delete();
+        $this->auditLogService->log('access.permission.deleted', 'permission', $permission->id, [
+            'name' => $permission->name,
+        ]);
 
         return redirect()->route('access.permissions.index')->with('success', 'Permission supprimee avec succes.');
     }
 }
-

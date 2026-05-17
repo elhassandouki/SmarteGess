@@ -14,6 +14,9 @@ use App\Http\Controllers\SalesDocumentController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockDocumentController;
 use App\Http\Controllers\TransporteurController;
+use App\Http\Controllers\SaaS\OnboardingController;
+use App\Http\Controllers\SaaS\SupportDashboardController;
+use App\Http\Controllers\SaaS\AuditLogController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -25,19 +28,25 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::middleware('auth')->group(function () {
-    Route::get('/home', [HomeController::class, 'index'])->middleware('can:view-erp')->name('home');
+    Route::get('/onboarding', [OnboardingController::class, 'show'])->name('saas.onboarding.show');
+    Route::post('/onboarding', [OnboardingController::class, 'store'])->name('saas.onboarding.store');
+    Route::get('/support', [SupportDashboardController::class, 'index'])->middleware('can:access.roles.view')->name('support.dashboard');
+    Route::patch('/support/tenants/{tenant}/toggle', [SupportDashboardController::class, 'toggleTenant'])->middleware('can:access.roles.update')->name('support.tenants.toggle');
+    Route::get('/support/audit-logs', [AuditLogController::class, 'index'])->middleware('can:access.roles.view')->name('support.audit-logs');
+
+    Route::get('/home', [HomeController::class, 'index'])->middleware(['can:view-erp', 'tenant.active'])->name('home');
 
     Route::prefix('erp')->name('erp.')->middleware('can:view-erp')->group(function () {
         Route::prefix('ventes')->name('sales.')->middleware('can:documents.view')->group(function () {
             Route::get('/documents', [SalesDocumentController::class, 'index'])->name('documents.index');
             Route::get('/documents/create', [SalesDocumentController::class, 'create'])->middleware('can:documents.create')->name('documents.create');
-            Route::post('/documents', [SalesDocumentController::class, 'store'])->middleware('can:documents.create')->name('documents.store');
+            Route::post('/documents', [SalesDocumentController::class, 'store'])->middleware(['can:documents.create', 'plan.documents'])->name('documents.store');
         });
 
         Route::prefix('achats')->name('purchases.')->middleware('can:documents.view')->group(function () {
             Route::get('/documents', [PurchaseDocumentController::class, 'index'])->name('documents.index');
             Route::get('/documents/create', [PurchaseDocumentController::class, 'create'])->middleware('can:documents.create')->name('documents.create');
-            Route::post('/documents', [PurchaseDocumentController::class, 'store'])->middleware('can:documents.create')->name('documents.store');
+            Route::post('/documents', [PurchaseDocumentController::class, 'store'])->middleware(['can:documents.create', 'plan.documents'])->name('documents.store');
         });
 
         Route::prefix('stock')->name('stock.')->middleware('can:stocks.view')->group(function () {
@@ -137,7 +146,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/documents/{document}/duplicate', [DocumentController::class, 'duplicate'])->middleware('can:documents.duplicate')->name('documents.duplicate');
         Route::patch('/documents/{document}/status', [DocumentController::class, 'updateStatus'])->middleware('can:documents.status')->name('documents.update-status');
         Route::get('/documents/create', [DocumentController::class, 'create'])->middleware('can:documents.create')->name('documents.create');
-        Route::post('/documents', [DocumentController::class, 'store'])->middleware('can:documents.create')->name('documents.store');
+        Route::post('/documents', [DocumentController::class, 'store'])->middleware(['can:documents.create', 'plan.documents'])->name('documents.store');
         Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
         Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
         Route::get('/documents/{document}/edit', [DocumentController::class, 'edit'])->middleware('can:documents.update')->name('documents.edit');

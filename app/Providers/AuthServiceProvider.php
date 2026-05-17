@@ -6,10 +6,12 @@ use App\Models\Article;
 use App\Models\CompteT;
 use App\Models\Document;
 use App\Models\Family;
+use App\Models\Tenant;
 use App\Policies\ArticlePolicy;
 use App\Policies\CompteTPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\FamilyPolicy;
+use App\Policies\TenantPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -19,6 +21,7 @@ class AuthServiceProvider extends ServiceProvider
         Family::class => FamilyPolicy::class,
         CompteT::class => CompteTPolicy::class,
         Document::class => DocumentPolicy::class,
+        Tenant::class => TenantPolicy::class,
     ];
 
     public function boot(): void
@@ -26,4 +29,3 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
     }
 }
-

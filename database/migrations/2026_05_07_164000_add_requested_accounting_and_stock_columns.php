@@ -20,18 +20,6 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('entry_lines')) {
-            Schema::create('entry_lines', function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('journal_entry_id')->constrained('journal_entries')->cascadeOnDelete();
-                $table->string('account_code', 20)->index();
-                $table->string('account_label');
-                $table->decimal('debit', 18, 2)->default(0);
-                $table->decimal('credit', 18, 2)->default(0);
-                $table->timestamps();
-            });
-        }
-
         if (Schema::hasTable('stock_movements')) {
             Schema::table('stock_movements', function (Blueprint $table) {
                 if (!Schema::hasColumn('stock_movements', 'type')) {
@@ -84,7 +72,6 @@ return new class extends Migration
             });
         }
 
-        Schema::dropIfExists('entry_lines');
         Schema::dropIfExists('accounting_accounts');
     }
 };

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,10 +10,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Reglement extends Model
 {
     use HasFactory;
+    use BelongsToTenant;
 
     protected $table = 'f_reglements';
 
     protected $fillable = [
+        'tenant_id',
         'doc_id',
         'tier_id',
         'rg_date',

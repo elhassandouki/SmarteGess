@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,10 +11,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Stock extends Model
 {
     use HasFactory;
+    use BelongsToTenant;
 
     protected $table = 'f_stock';
 
     protected $fillable = [
+        'tenant_id',
         'article_id',
         'depot_id',
         'stock_reel',
