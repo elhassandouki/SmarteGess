@@ -32,6 +32,11 @@
             'stock' => (float) $article->ar_stock_actuel,
         ],
     ]);
+
+    $articleOptions = $articles->map(fn ($article) => [
+        'id' => $article->id,
+        'label' => ($article->code_article ?: $article->ar_ref).' - '.$article->ar_design,
+    ])->values();
 @endphp
 
 <div class="row">
@@ -149,7 +154,10 @@
                         <button type="button" id="posAddFallbackBtn" class="btn btn-sm btn-outline-secondary btn-block">Ajouter via ligne manuelle</button>
                     </div>
                 </div>
-                <small class="text-muted d-block mt-2">Mode POS: scanner puis Entrer. Le curseur reste sur ce champ pour un enchainement rapide.</small>
+                <div class="mt-2 d-flex flex-wrap align-items-center">
+                    <small class="text-muted mr-3">Mode POS: scanner puis Entrer. Le curseur reste sur ce champ pour un enchainement rapide.</small>
+                    <button type="button" id="posCameraBtn" class="btn btn-xs btn-outline-info">Scanner camera (mobile)</button>
+                </div>
             </div>
 
             <div class="table-responsive">
@@ -216,265 +224,15 @@
 </div>
 
 @push('js')
+<script src="{{ asset('js/document-pos-builder.js') }}"></script>
 <script>
-    (function () {
-        const articleMap = @json($articleMap);
-        const linesBody = document.getElementById('linesBody');
-        const addLineBtn = document.getElementById('addLineBtn');
-        const posProductInput = document.getElementById('posProductInput');
-        const posQtyInput = document.getElementById('posQtyInput');
-        const posSearchResults = document.getElementById('posSearchResults');
-        const posAddFallbackBtn = document.getElementById('posAddFallbackBtn');
-        const sumHt = document.getElementById('sumHt');
-        const sumTva = document.getElementById('sumTva');
-        const sumTtc = document.getElementById('sumTtc');
-        let searchAbort = null;
-        let searchItems = [];
-
-        function money(v) {
-            return Number(v || 0).toFixed(2);
-        }
-
-        function renumberRows() {
-            linesBody.querySelectorAll('tr.line-row').forEach((row, idx) => {
-                row.querySelectorAll('input, select').forEach((field) => {
-                    const name = field.getAttribute('name');
-                    if (!name) return;
-                    field.setAttribute('name', name.replace(/lines\[\d+\]/, `lines[${idx}]`));
-                });
-            });
-        }
-
-        function computeRow(row) {
-            const articleId = row.querySelector('.line-article').value;
-            const qty = Number(row.querySelector('.line-qty').value || 0);
-            const priceInput = row.querySelector('.line-price');
-            const discount = Math.max(0, Math.min(100, Number(row.querySelector('.line-discount').value || 0)));
-
-            const article = articleMap[articleId] || null;
-            const tva = Number(article ? article.tva : 0);
-
-            if (article && Number(priceInput.value || 0) === 0) {
-                priceInput.value = article.price || article.buy_price || 0;
-            }
-
-            const price = Number(priceInput.value || 0);
-            const gross = qty * price;
-            const discountAmount = gross * (discount / 100);
-            const totalHt = gross - discountAmount;
-            const totalTva = totalHt * (tva / 100);
-            const totalTtc = totalHt + totalTva;
-
-            row.querySelector('.line-tva').value = money(tva);
-            row.querySelector('.line-ht').value = money(totalHt);
-            row.querySelector('.line-ttc').value = money(totalTtc);
-
-            return { totalHt, totalTva, totalTtc };
-        }
-
-        function computeAll() {
-            let totalHt = 0;
-            let totalTva = 0;
-            let totalTtc = 0;
-
-            linesBody.querySelectorAll('tr.line-row').forEach((row) => {
-                const totals = computeRow(row);
-                totalHt += totals.totalHt;
-                totalTva += totals.totalTva;
-                totalTtc += totals.totalTtc;
-            });
-
-            sumHt.textContent = money(totalHt);
-            sumTva.textContent = money(totalTva);
-            sumTtc.textContent = money(totalTtc);
-        }
-
-        function addRow() {
-            const idx = linesBody.querySelectorAll('tr.line-row').length;
-            const row = document.createElement('tr');
-            row.className = 'line-row';
-            row.innerHTML = `
-                <td>
-                    <select name="lines[${idx}][article_id]" class="form-control form-control-sm line-article">
-                        <option value="">Selectionner</option>
-                        @foreach ($articles as $article)
-                            <option value="{{ $article->id }}">{{ $article->code_article ?: $article->ar_ref }} - {{ $article->ar_design }}</option>
-                        @endforeach
-                    </select>
-                </td>
-                <td><input type="number" step="0.001" min="0" name="lines[${idx}][dl_qte]" class="form-control form-control-sm line-qty" value="1"></td>
-                <td><input type="number" step="0.00001" min="0" name="lines[${idx}][dl_prix_unitaire_ht]" class="form-control form-control-sm line-price" value="0"></td>
-                <td><input type="number" step="0.01" min="0" max="100" name="lines[${idx}][dl_remise_percent]" class="form-control form-control-sm line-discount" value="0"></td>
-                <td><input type="text" class="form-control form-control-sm line-tva" value="0.00" readonly></td>
-                <td><input type="text" class="form-control form-control-sm line-ht" value="0.00" readonly></td>
-                <td><input type="text" class="form-control form-control-sm line-ttc" value="0.00" readonly></td>
-                <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger btn-remove-line"><i class="fas fa-times"></i></button></td>
-            `;
-            linesBody.appendChild(row);
-            computeAll();
-            return row;
-        }
-
-        function ensureArticleOption(select, article) {
-            const id = String(article.id);
-            if ([...select.options].some((o) => o.value === id)) {
-                return;
-            }
-            const option = document.createElement('option');
-            option.value = id;
-            option.textContent = article.label || `${article.code} - ${article.name}`;
-            select.appendChild(option);
-        }
-
-        function addOrIncrementLine(article, qtyToAdd) {
-            const qty = Math.max(0.001, Number(qtyToAdd || 1));
-            const existing = [...linesBody.querySelectorAll('tr.line-row')].find((row) => row.querySelector('.line-article').value === String(article.id));
-
-            if (existing) {
-                const qtyInput = existing.querySelector('.line-qty');
-                qtyInput.value = Number(qtyInput.value || 0) + qty;
-                computeAll();
-                return;
-            }
-
-            const row = addRow();
-            const select = row.querySelector('.line-article');
-            ensureArticleOption(select, article);
-            select.value = String(article.id);
-            row.querySelector('.line-qty').value = qty;
-            row.querySelector('.line-price').value = Number(article.price || article.buy_price || 0);
-            computeAll();
-        }
-
-        function hideResults() {
-            posSearchResults.style.display = 'none';
-            posSearchResults.innerHTML = '';
-            searchItems = [];
-        }
-
-        function renderResults(items) {
-            searchItems = items;
-            posSearchResults.innerHTML = '';
-            if (!items.length) {
-                hideResults();
-                return;
-            }
-
-            items.forEach((item, idx) => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'list-group-item list-group-item-action py-2';
-                btn.dataset.index = String(idx);
-                btn.innerHTML = `<strong>${item.code}</strong> - ${item.name}<span class="float-right text-muted">${money(item.price)} DH</span>`;
-                posSearchResults.appendChild(btn);
-            });
-
-            posSearchResults.style.display = 'block';
-        }
-
-        async function apiSearch(q) {
-            if (searchAbort) {
-                searchAbort.abort();
-            }
-            searchAbort = new AbortController();
-            const resp = await fetch(`/api/articles/search?q=${encodeURIComponent(q)}`, { signal: searchAbort.signal, headers: { 'Accept': 'application/json' } });
-            if (!resp.ok) return [];
-            const payload = await resp.json();
-            return payload.data || [];
-        }
-
-        async function apiBarcode(code) {
-            const resp = await fetch(`/api/articles/barcode/${encodeURIComponent(code)}`, { headers: { 'Accept': 'application/json' } });
-            if (!resp.ok) return null;
-            const payload = await resp.json();
-            return payload.data || null;
-        }
-
-        function keepScannerFocus() {
-            setTimeout(() => posProductInput.focus(), 20);
-        }
-
-        linesBody.addEventListener('input', computeAll);
-        linesBody.addEventListener('change', computeAll);
-
-        linesBody.addEventListener('click', (event) => {
-            const btn = event.target.closest('.btn-remove-line');
-            if (!btn) return;
-            const row = btn.closest('tr');
-            row.remove();
-
-            if (!linesBody.querySelector('tr.line-row')) {
-                addRow();
-            }
-
-            renumberRows();
-            computeAll();
-        });
-
-        addLineBtn.addEventListener('click', addRow);
-        posAddFallbackBtn.addEventListener('click', () => {
-            addRow();
-            keepScannerFocus();
-        });
-
-        posProductInput.addEventListener('input', async () => {
-            const q = posProductInput.value.trim();
-            if (q.length < 2) {
-                hideResults();
-                return;
-            }
-
-            try {
-                const items = await apiSearch(q);
-                renderResults(items);
-            } catch (_) {
-                hideResults();
-            }
-        });
-
-        posSearchResults.addEventListener('click', (event) => {
-            const btn = event.target.closest('[data-index]');
-            if (!btn) return;
-            const item = searchItems[Number(btn.dataset.index)];
-            if (!item) return;
-            addOrIncrementLine(item, posQtyInput.value);
-            posProductInput.value = '';
-            hideResults();
-            keepScannerFocus();
-        });
-
-        posProductInput.addEventListener('keydown', async (event) => {
-            if (event.key !== 'Enter') return;
-            event.preventDefault();
-
-            const raw = posProductInput.value.trim();
-            if (!raw) return;
-
-            let item = await apiBarcode(raw);
-            if (!item) {
-                const items = await apiSearch(raw);
-                item = items[0] || null;
-            }
-
-            if (item) {
-                addOrIncrementLine(item, posQtyInput.value);
-                posProductInput.value = '';
-                hideResults();
-            }
-
-            keepScannerFocus();
-        });
-
-        posProductInput.addEventListener('blur', () => {
-            setTimeout(() => {
-                if (document.activeElement !== posProductInput) {
-                    posProductInput.focus();
-                }
-            }, 120);
-        });
-
-        computeAll();
-        keepScannerFocus();
-    })();
+    window.initDocumentPosBuilder?.({
+        articleMap: @json($articleMap),
+        articleOptions: @json($articleOptions),
+        endpoints: {
+            search: @json(route('api.articles.search')),
+            barcode: @json(str_replace('%7Bcode%7D', '__CODE__', route('api.articles.barcode', ['code' => '{code}'))),
+        },
+    });
 </script>
 @endpush
