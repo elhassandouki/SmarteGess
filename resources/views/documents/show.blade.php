@@ -38,6 +38,11 @@
 @stop
 
 @section('content')
+    <!-- Invoice and Thermal Ticket Actions -->
+    <div class="mb-3">
+        <x-invoice-actions :document="$document" />
+    </div>
+
     <div class="row">
         <div class="col-md-4">
             <x-adminlte-card theme="info" theme-mode="outline" title="Informations document">

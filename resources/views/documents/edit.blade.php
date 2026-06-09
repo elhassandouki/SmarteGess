@@ -10,6 +10,11 @@
 @section('content')
     @include('partials.flash')
 
+    <!-- Invoice and Thermal Ticket Actions -->
+    <div class="mb-3">
+        <x-invoice-actions :document="$document" />
+    </div>
+
     <x-adminlte-card theme="warning" theme-mode="outline" title="Edition" icon="fas fa-pen">
         <form action="{{ route('documents.update', $document) }}" method="POST">
             @method('PUT')

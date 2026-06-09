@@ -164,6 +164,16 @@ class DocumentController extends Controller
                 .'<form action="'.route('documents.duplicate', $document).'" method="POST" class="mr-2">'.csrf_field().'<button type="submit" class="btn btn-xs btn-outline-warning" title="Dupliquer"><i class="fas fa-copy"></i></button></form>'
                 .'<button type="button" class="btn btn-xs btn-outline-success mr-2 quick-status-btn" data-toggle="modal" data-target="#quickStatusModal" data-action="'.route('documents.update-status', $document).'" data-current="'.e((string) $document->do_expedition_statut).'"><i class="fas fa-shipping-fast"></i></button>'
                 .'<a href="'.route('reglements.create', ['doc_id' => $document->id, 'tier_id' => $document->tier_id]).'" class="btn btn-xs btn-outline-dark mr-2" title="Reglement"><i class="fas fa-cash-register"></i></a>'
+                .'<div class="btn-group btn-group-sm mr-2" role="group"><button class="btn btn-xs btn-outline-info dropdown-toggle" type="button" data-toggle="dropdown"><i class="fas fa-file-pdf"></i></button>'
+                .'<div class="dropdown-menu dropdown-menu-right">'
+                .'<a class="dropdown-item" href="'.route('invoices.preview', $document).'" target="_blank"><i class="fas fa-eye"></i> Aperçu</a>'
+                .'<a class="dropdown-item" href="'.route('invoices.pdf', $document).'"><i class="fas fa-download"></i> Télécharger</a>'
+                .'</div></div>'
+                .'<div class="btn-group btn-group-sm mr-2" role="group"><button class="btn btn-xs btn-outline-warning dropdown-toggle" type="button" data-toggle="dropdown"><i class="fas fa-print"></i></button>'
+                .'<div class="dropdown-menu dropdown-menu-right">'
+                .'<a class="dropdown-item" href="'.route('invoices.thermal-preview', $document).'" target="_blank"><i class="fas fa-eye"></i> Aperçu</a>'
+                .'<a class="dropdown-item" href="'.route('invoices.thermal', $document).'"><i class="fas fa-print"></i> Imprimer</a>'
+                .'</div></div>'
                 .'<form action="'.route('documents.destroy', $document).'" method="POST" data-ajax-delete="true" data-confirm="Supprimer ce document ?">'.csrf_field().method_field('DELETE').'<button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button></form>'
                 .'</div>';
 
