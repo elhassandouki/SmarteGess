@@ -231,7 +231,7 @@
         articleOptions: @json($articleOptions),
         endpoints: {
             search: @json(route('api.articles.search')),
-            barcode: @json(str_replace('%7Bcode%7D', '__CODE__', route('api.articles.barcode', ['code' => '{code}'))),
+            barcode: "{{ url('api/articles/barcode/__CODE__') }}",
         },
     });
 </script>

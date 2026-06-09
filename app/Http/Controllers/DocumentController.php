@@ -8,6 +8,7 @@ use App\Models\Article;
 use App\Models\CompteT;
 use App\Models\Depot;
 use App\Models\Document;
+use App\Models\Stock;
 use App\Models\Transporteur;
 use App\Modules\Sales\Application\Actions\CancelDocumentAction;
 use App\Modules\Sales\Application\Actions\PostDocumentAction;
@@ -19,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class DocumentController extends Controller
@@ -381,7 +383,7 @@ class DocumentController extends Controller
             ? array_keys(DocumentTypeRegistry::codesByModule($module))
             : $types;
 
-        return $request->validate([
+        $data = $request->validate([
             'do_piece' => ['nullable', 'string', 'max:100', Rule::unique('f_docentete', 'do_piece')->ignore($documentId)],
             'do_date' => ['required', 'date'],
             'tier_id' => ['nullable', 'exists:f_comptet,id'],
@@ -402,6 +404,54 @@ class DocumentController extends Controller
             'lines.*.dl_prix_unitaire_ht' => ['required', 'numeric', 'min:0'],
             'lines.*.dl_remise_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
+
+        $this->validateDeliveryStockAvailability($data);
+
+        return $data;
+    }
+
+    protected function validateDeliveryStockAvailability(array $data): void
+    {
+        if (($data['type_document_code'] ?? null) !== 'BL') {
+            return;
+        }
+
+        if (empty($data['depot_id'])) {
+            throw ValidationException::withMessages([
+                'depot_id' => 'Le depot est requis pour un Bon de Livraison (BL) afin de controler le stock disponible.',
+            ]);
+        }
+
+        $depotId = (int) $data['depot_id'];
+        $articleIds = collect($data['lines'] ?? [])->pluck('article_id')->filter()->unique()->values();
+
+        $availableByArticle = Stock::query()
+            ->where('depot_id', $depotId)
+            ->whereIn('article_id', $articleIds)
+            ->pluck('stock_reel', 'article_id');
+
+        $requestedByArticle = collect($data['lines'])
+            ->groupBy('article_id')
+            ->map(fn ($lines) => (float) $lines->sum(fn ($line) => (float) ($line['dl_qte'] ?? 0)));
+
+        foreach ($requestedByArticle as $articleId => $requestedQty) {
+            $availableQty = (float) ($availableByArticle[$articleId] ?? 0.0);
+            if ($requestedQty <= $availableQty) {
+                continue;
+            }
+
+            $missing = $requestedQty - $availableQty;
+            throw ValidationException::withMessages([
+                'lines' => sprintf(
+                    'Stock insuffisant pour article #%d dans le depot #%d. Demande: %.3f, Disponible: %.3f, Manquant: %.3f. Alternatives: reduire la quantite, changer de depot, fractionner la livraison, ou declencher un reapprovisionnement.',
+                    (int) $articleId,
+                    $depotId,
+                    $requestedQty,
+                    $availableQty,
+                    $missing
+                ),
+            ]);
+        }
     }
 
     protected function paymentStatuses(): array

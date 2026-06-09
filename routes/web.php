@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\AI\BusinessIntelligenceController;
 use App\Http\Controllers\Api\ArticleLookupController;
 use App\Http\Controllers\Access\PermissionController;
 use App\Http\Controllers\Access\RoleController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\DepotController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FamilyController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\ReglementController;
 use App\Http\Controllers\PurchaseDocumentController;
@@ -44,6 +46,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/support/audit-logs', [AuditLogController::class, 'index'])->middleware('can:internal.support.view')->name('support.audit-logs');
 
     Route::get('/home', [HomeController::class, 'index'])->middleware(['can:view-erp', 'tenant.active'])->name('home');
+
+    Route::prefix('ai')->name('ai.')->middleware('can:view-erp')->group(function () {
+        Route::get('/', [BusinessIntelligenceController::class, 'index'])->name('index');
+        Route::post('/reports/run', [BusinessIntelligenceController::class, 'report'])->name('reports.run');
+        Route::get('/stock-alerts', [BusinessIntelligenceController::class, 'stockAlerts'])->name('stock-alerts');
+        Route::get('/documents/{document}/export/pdf', [BusinessIntelligenceController::class, 'exportDocumentPdf'])->name('documents.export.pdf');
+        Route::get('/documents/{document}/export/excel', [BusinessIntelligenceController::class, 'exportDocumentExcel'])->name('documents.export.excel');
+        Route::post('/reports/export/{format}', [BusinessIntelligenceController::class, 'exportReport'])
+            ->whereIn('format', ['pdf', 'excel'])
+            ->name('reports.export');
+    });
 
     Route::prefix('erp')->name('erp.')->middleware('can:view-erp')->group(function () {
         Route::prefix('ventes')->name('sales.')->middleware('can:documents.view')->group(function () {
@@ -176,6 +189,13 @@ Route::middleware('auth')->group(function () {
         Route::patch('/documents/{document}/post', [DocumentController::class, 'postLifecycle'])->middleware('can:documents.status')->name('documents.post');
         Route::patch('/documents/{document}/cancel', [DocumentController::class, 'cancelLifecycle'])->middleware('can:documents.delete')->name('documents.cancel');
         Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->middleware('can:documents.delete')->name('documents.destroy');
+
+        // Invoice and thermal ticket routes
+        Route::get('/invoices/{document}/pdf', [InvoiceController::class, 'downloadInvoicePdf'])->name('invoices.pdf');
+        Route::get('/invoices/{document}/preview', [InvoiceController::class, 'previewInvoicePdf'])->name('invoices.preview');
+        Route::get('/invoices/{document}/thermal', [InvoiceController::class, 'printThermalTicket'])->name('invoices.thermal');
+        Route::get('/invoices/{document}/thermal-preview', [InvoiceController::class, 'previewThermalTicket'])->name('invoices.thermal-preview');
+        Route::get('/invoices/{document}/thermal-escpos', [InvoiceController::class, 'getThermalTicketEscPos'])->name('invoices.thermal-escpos');
     });
 
     Route::prefix('access')->name('access.')->middleware('can:admin.panel')->group(function () {
